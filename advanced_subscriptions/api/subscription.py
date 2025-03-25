@@ -102,3 +102,26 @@ def cancel_subscription(subscription):
             "success": False,
             "message": str(e)
         }
+    
+@frappe.whitelist()
+def get_plans_with_features():
+    """Get all active plans with their features"""
+    try:
+        plans = frappe.get_all("Plan", 
+            filters=[["is_active", "=", 1]],
+            fields=["name", "naam", "beschrijving", "prijs", "periode"]
+        )
+        
+        for plan in plans:
+            features = frappe.get_all("Plan Feature", 
+                filters={"parent": plan.name},
+                fields=["name", "feature"]
+            )
+            plan["features"] = features
+
+        plans.sort(key=lambda x: x["prijs"])
+        
+        return plans
+    except Exception as e:
+        frappe.log_error(f"Error getting plans with features: {str(e)}")
+        return []

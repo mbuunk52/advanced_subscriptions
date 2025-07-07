@@ -1,87 +1,93 @@
 {
-    "actions": [],
-    "allow_rename": 1,
-    "autoname": "field:naam",
-    "creation": "2023-01-01 00:00:00.000000",
-    "doctype": "DocType",
-    "engine": "InnoDB",
-    "field_order": [
-     "naam",
-     "beschrijving",
-     "prijs",
-     "periode",
-     "is_active",
-     "features_section",
-     "features"
-    ],
-    "fields": [
-     {
-      "fieldname": "naam",
-      "fieldtype": "Data",
-      "in_list_view": 1,
-      "label": "Naam",
-      "reqd": 1,
-      "unique": 1
-     },
-     {
-      "fieldname": "beschrijving",
-      "fieldtype": "Text",
-      "label": "Beschrijving"
-     },
-     {
-      "fieldname": "prijs",
-      "fieldtype": "Currency",
-      "label": "Prijs",
-      "reqd": 1
-     },
-     {
-      "fieldname": "periode",
-      "fieldtype": "Select",
-      "label": "Periode",
-      "options": "Month\nYear",
-      "reqd": 1
-     },
-     {
-      "default": "1",
-      "fieldname": "is_active",
-      "fieldtype": "Check",
-      "label": "Is Active"
-     },
-     {
-      "fieldname": "features_section",
-      "fieldtype": "Section Break",
-      "label": "Features"
-     },
-     {
-      "fieldname": "features",
-      "fieldtype": "Table",
-      "label": "Features",
-      "options": "Plan Feature"
-     }
-    ],
-    "index_web_pages_for_search": 1,
-    "links": [],
-    "modified": "2023-01-01 00:00:00.000000",
-    "modified_by": "Administrator",
-    "module": "Advanced Subscriptions",
-    "name": "Plan",
-    "naming_rule": "By fieldname",
-    "owner": "Administrator",
-    "permissions": [
-     {
-      "create": 1,
-      "delete": 1,
-      "email": 1,
-      "export": 1,
-      "print": 1,
-      "read": 1,
-      "report": 1,
-      "role": "System Manager",
-      "share": 1,
-      "write": 1
-     }
-    ],
-    "sort_field": "modified",
-    "sort_order": "DESC",
-    "states": []
-   }
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:naam",
+ "creation": "2023-01-01 00:00:00",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naam",
+  "beschrijving",
+  "prijs",
+  "periode",
+  "is_active",
+  "features_section",
+  "features"
+ ],
+ "fields": [
+  {
+   "fieldname": "naam",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Naam",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "beschrijving",
+   "fieldtype": "Text",
+   "label": "Beschrijving"
+  },
+  {
+   "fieldname": "prijs",
+   "fieldtype": "Currency",
+   "label": "Prijs",
+   "reqd": 1
+  },
+  {
+   "fieldname": "periode",
+   "fieldtype": "Select",
+   "label": "Periode",
+   "options": "Month\nYear",
+   "reqd": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Is Active"
+  },
+  {
+   "fieldname": "features_section",
+   "fieldtype": "Section Break",
+   "label": "Features"
+  },
+  {
+   "fieldname": "features",
+   "fieldtype": "Table",
+   "label": "Features",
+   "options": "Plan Feature"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-07-07 16:57:59.055262",
+ "modified_by": "Administrator",
+ "module": "Advanced Subscriptions",
+ "name": "Plan",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "All",
+   "select": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

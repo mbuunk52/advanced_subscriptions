@@ -1,81 +1,86 @@
 {
-    "actions": [],
-    "allow_rename": 1,
-    "autoname": "format:USAGE-{####}",
-    "creation": "2023-01-01 00:00:00.000000",
-    "doctype": "DocType",
-    "engine": "InnoDB",
-    "field_order": [
-     "item_name",
-     "price",
-     "description",
-     "subscription",
-     "payment_status",
-     "payment_url"
-    ],
-    "fields": [
-     {
-      "fieldname": "item_name",
-      "fieldtype": "Data",
-      "in_list_view": 1,
-      "label": "Item Name",
-      "reqd": 1
-     },
-     {
-      "fieldname": "price",
-      "fieldtype": "Currency",
-      "label": "Price",
-      "reqd": 1
-     },
-     {
-      "fieldname": "description",
-      "fieldtype": "Text",
-      "label": "Description"
-     },
-     {
-      "fieldname": "subscription",
-      "fieldtype": "Link",
-      "label": "Subscription",
-      "options": "Subscription",
-      "reqd": 1
-     },
-     {
-      "fieldname": "payment_status",
-      "fieldtype": "Select",
-      "label": "Payment Status",
-      "options": "Pending\nPaid\nFailed",
-      "default": "Pending"
-     },
-     {
-      "fieldname": "payment_url",
-      "fieldtype": "Data",
-      "label": "Payment URL",
-      "read_only": 1
-     }
-    ],
-    "index_web_pages_for_search": 1,
-    "links": [],
-    "modified": "2023-01-01 00:00:00.000000",
-    "modified_by": "Administrator",
-    "module": "Advanced Subscriptions",
-    "name": "Usage Item",
-    "naming_rule": "Expression",
-    "owner": "Administrator",
-    "permissions": [
-     {
-      "create": 1,
-      "delete": 1,
-      "email": 1,
-      "export": 1,
-      "print": 1,
-      "read": 1,
-      "report": 1,
-      "role": "System Manager",
-      "share": 1,
-      "write": 1
-     }
-    ],
-    "sort_field": "modified",
-    "sort_order": "DESC",
-    "states": []
-   }
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:USAGE-{####}",
+ "creation": "2023-01-01 00:00:00",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "item_name",
+  "price",
+  "description",
+  "subscription",
+  "payment_status",
+  "payment_url"
+ ],
+ "fields": [
+  {
+   "fieldname": "item_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Item Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "price",
+   "fieldtype": "Currency",
+   "label": "Price",
+   "reqd": 1
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Text",
+   "label": "Description"
+  },
+  {
+   "fieldname": "subscription",
+   "fieldtype": "Link",
+   "label": "Subscription",
+   "options": "Subscription",
+   "reqd": 1
+  },
+  {
+   "default": "Pending",
+   "fieldname": "payment_status",
+   "fieldtype": "Select",
+   "label": "Payment Status",
+   "options": "Pending\nPaid\nFailed"
+  },
+  {
+   "fieldname": "payment_url",
+   "fieldtype": "Data",
+   "label": "Payment URL",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-07-07 16:58:24.075369",
+ "modified_by": "Administrator",
+ "module": "Advanced Subscriptions",
+ "name": "Usage Item",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "All"
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

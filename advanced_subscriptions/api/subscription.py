@@ -3,26 +3,26 @@ from frappe import _
 from frappe.utils import today, add_months, getdate
 
 @frappe.whitelist()
-def create_subscription(administratie, plan):
+def create_subscription(administration, plan):
     """Create a new subscription"""
     if not administratie or not plan:
         frappe.throw(_("Administratie and plan are required"))
     
     try:
-        # Check if a subscription already exists for this administratie
+        # Check if a subscription already exists for this administration
         existing = frappe.get_all("Subscription", 
-            filters={"administratie": administratie, "status": "Active"},
+            filters={"administration": administration, "status": "Active"},
             fields=["name"])
         
         if existing:
-            frappe.throw(_("An active subscription already exists for this administratie"))
+            frappe.throw(_("An active subscription already exists for this administration"))
         
         # Get the plan details
         plan_doc = frappe.get_doc("Plan", plan)
         
         # Create the subscription
         subscription = frappe.new_doc("Subscription")
-        subscription.administratie = administratie
+        subscription.administration = administration
         subscription.plan = plan
         subscription.status = "Active"
         subscription.startdatum = today()

@@ -143,23 +143,12 @@ app_license = "mit"
 # Scheduled Tasks
 # ---------------
 
-# scheduler_events = {
-# 	"all": [
-# 		"advanced_subscriptions.tasks.all"
-# 	],
-# 	"daily": [
-# 		"advanced_subscriptions.tasks.daily"
-# 	],
-# 	"hourly": [
-# 		"advanced_subscriptions.tasks.hourly"
-# 	],
-# 	"weekly": [
-# 		"advanced_subscriptions.tasks.weekly"
-# 	],
-# 	"monthly": [
-# 		"advanced_subscriptions.tasks.monthly"
-# 	],
-# }
+scheduler_events = {
+	"daily": [
+		"advanced_subscriptions.advanced_subscriptions.doctype.subscription.subscription.check_expiring_subscriptions",
+		"advanced_subscriptions.advanced_subscriptions.doctype.subscription.subscription.process_renewals"
+	],
+}
 
 # Testing
 # -------
@@ -231,7 +220,7 @@ app_license = "mit"
 # ]
 
 # Automatically update python controller files with type annotations for this app.
-# export_python_type_annotations = True
+export_python_type_annotations = True
 
 # default_log_clearing_doctypes = {
 # 	"Logging DocType Name": 30  # days to retain logs

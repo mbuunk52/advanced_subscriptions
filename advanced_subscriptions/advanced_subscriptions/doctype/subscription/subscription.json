@@ -14,7 +14,15 @@
   "einddatum",
   "betalingsmethode",
   "section_break_8",
-  "pay_as_you_go_items"
+  "pay_as_you_go_items",
+  "mollie_section",
+  "mollie_customer_id",
+  "mollie_subscription_id",
+  "mollie_mandate_id",
+  "column_break_mollie",
+  "auto_renew",
+  "next_payment_date",
+  "payment_failure_count"
  ],
  "fields": [
   {
@@ -75,11 +83,57 @@
    "label": "Administratie",
    "options": "Administration",
    "reqd": 1
+  },
+  {
+   "fieldname": "mollie_section",
+   "fieldtype": "Section Break",
+   "label": "Mollie Integration"
+  },
+  {
+   "fieldname": "mollie_customer_id",
+   "fieldtype": "Data",
+   "label": "Mollie Customer ID",
+   "read_only": 1
+  },
+  {
+   "fieldname": "mollie_subscription_id",
+   "fieldtype": "Data",
+   "label": "Mollie Subscription ID",
+   "read_only": 1
+  },
+  {
+   "fieldname": "mollie_mandate_id",
+   "fieldtype": "Data",
+   "label": "Mollie Mandate ID",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_mollie",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "auto_renew",
+   "fieldtype": "Check",
+   "label": "Auto Renew?"
+  },
+  {
+   "fieldname": "next_payment_date",
+   "fieldtype": "Date",
+   "label": "Next Payment Date",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "payment_failure_count",
+   "fieldtype": "Int",
+   "label": "Payment Failure Count",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-07-07 17:01:38.990133",
+ "modified": "2025-07-22 11:56:22.407490",
  "modified_by": "Administrator",
  "module": "Advanced Subscriptions",
  "name": "Subscription",

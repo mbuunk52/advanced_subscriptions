@@ -1,10 +1,10 @@
-# Copyright (c) 2025, Buunk Business and contriburors
-# MIT License. See license.txt
+# Copyright (c) 2025, Buunk Business and contributors
+# For license information, please see license.txt
 
-import frappe
 from frappe.model.document import Document
 
-class SubscriptionPayAsYouGoItem(Document):
+
+class PaymentProviderMethod(Document):
     # begin: auto-generated types
     # This code is auto-generated. Do not modify anything in this block.
 
@@ -13,12 +13,15 @@ class SubscriptionPayAsYouGoItem(Document):
     if TYPE_CHECKING:
         from frappe.types import DF
 
-        description: DF.Text | None
-        item_name: DF.Data
+        currencies: DF.Data | None
+        is_active: DF.Check
+        maximum_amount: DF.Currency
+        method_id: DF.Data
+        method_name: DF.Data
+        minimum_amount: DF.Currency
         parent: DF.Data
         parentfield: DF.Data
         parenttype: DF.Data
-        price: DF.Currency
     # end: auto-generated types
 
     pass

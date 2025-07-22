@@ -49,13 +49,13 @@
   {
    "fieldname": "payment_url",
    "fieldtype": "Data",
-   "label": "Payment URL",
+   "label": "Payment url",
    "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-07-07 16:58:24.075369",
+ "modified": "2025-07-22 11:55:43.101901",
  "modified_by": "Administrator",
  "module": "Advanced Subscriptions",
  "name": "Usage Item",

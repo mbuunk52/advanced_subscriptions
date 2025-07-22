@@ -1,0 +1,144 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:provider_name",
+ "creation": "2025-07-22 00:00:00",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "provider_name",
+  "provider_type",
+  "is_active",
+  "configuration_section",
+  "api_mode",
+  "live_api_key",
+  "test_api_key",
+  "webhook_secret",
+  "api_settings_section",
+  "base_url",
+  "webhook_url",
+  "supported_methods_section",
+  "supported_payment_methods",
+  "additional_settings_section",
+  "additional_settings"
+ ],
+ "fields": [
+  {
+   "fieldname": "provider_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Provider Name",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "provider_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Provider Type",
+   "options": "Mollie\nStripe\nPayPal\nAdyen\nSquare\nRazorpay",
+   "reqd": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Is Active?"
+  },
+  {
+   "fieldname": "configuration_section",
+   "fieldtype": "Section Break",
+   "label": "API Configuration"
+  },
+  {
+   "default": "test",
+   "fieldname": "api_mode",
+   "fieldtype": "Select",
+   "label": "API Mode",
+   "options": "test\nlive",
+   "reqd": 1
+  },
+  {
+   "depends_on": "eval: doc.api_mode == 'live'",
+   "fieldname": "live_api_key",
+   "fieldtype": "Password",
+   "label": "Live API Key"
+  },
+  {
+   "depends_on": "eval: doc.api_mode == 'test'",
+   "fieldname": "test_api_key",
+   "fieldtype": "Password",
+   "label": "Test API Key"
+  },
+  {
+   "fieldname": "webhook_secret",
+   "fieldtype": "Password",
+   "label": "Webhook Secret"
+  },
+  {
+   "fieldname": "api_settings_section",
+   "fieldtype": "Section Break",
+   "label": "API Settings"
+  },
+  {
+   "fieldname": "base_url",
+   "fieldtype": "Data",
+   "label": "Base URL",
+   "read_only": 1
+  },
+  {
+   "fieldname": "webhook_url",
+   "fieldtype": "Data",
+   "label": "Webhook URL",
+   "read_only": 1
+  },
+  {
+   "fieldname": "supported_methods_section",
+   "fieldtype": "Section Break",
+   "label": "Supported Payment Methods"
+  },
+  {
+   "fieldname": "supported_payment_methods",
+   "fieldtype": "Table",
+   "label": "Supported Payment Methods",
+   "options": "Payment Provider Method"
+  },
+  {
+   "fieldname": "additional_settings_section",
+   "fieldtype": "Section Break",
+   "label": "Additional Settings"
+  },
+  {
+   "fieldname": "additional_settings",
+   "fieldtype": "JSON",
+   "label": "Additional Settings"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-07-22 11:54:46.286296",
+ "modified_by": "Administrator",
+ "module": "Advanced Subscriptions",
+ "name": "Payment Provider",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

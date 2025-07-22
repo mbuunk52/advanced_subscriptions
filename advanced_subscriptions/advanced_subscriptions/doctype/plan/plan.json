@@ -45,7 +45,7 @@
    "default": "1",
    "fieldname": "is_active",
    "fieldtype": "Check",
-   "label": "Is Active"
+   "label": "Is Active?"
   },
   {
    "fieldname": "features_section",
@@ -61,7 +61,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-07-07 16:57:59.055262",
+ "modified": "2025-07-22 11:55:15.013297",
  "modified_by": "Administrator",
  "module": "Advanced Subscriptions",
  "name": "Plan",

@@ -5,6 +5,23 @@ import frappe
 from frappe.model.document import Document
 
 class Plan(Document):
+    # begin: auto-generated types
+    # This code is auto-generated. Do not modify anything in this block.
+
+    from typing import TYPE_CHECKING
+
+    if TYPE_CHECKING:
+        from advanced_subscriptions.advanced_subscriptions.doctype.plan_feature.plan_feature import PlanFeature
+        from frappe.types import DF
+
+        beschrijving: DF.Text | None
+        features: DF.Table[PlanFeature]
+        is_active: DF.Check
+        naam: DF.Data
+        periode: DF.Literal["Month", "Year"]
+        prijs: DF.Currency
+    # end: auto-generated types
+
     def validate(self):
         # Ensure at least one feature is added
         if not self.features:

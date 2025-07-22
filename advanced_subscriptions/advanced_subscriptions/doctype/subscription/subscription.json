@@ -19,6 +19,8 @@
   "mollie_customer_id",
   "mollie_subscription_id",
   "mollie_mandate_id",
+  "first_payment_id",
+  "first_payment_url",
   "column_break_mollie",
   "auto_renew",
   "next_payment_date",
@@ -105,6 +107,18 @@
    "fieldname": "mollie_mandate_id",
    "fieldtype": "Data",
    "label": "Mollie Mandate ID",
+   "read_only": 1
+  },
+  {
+   "fieldname": "first_payment_id",
+   "fieldtype": "Data",
+   "label": "First Payment ID",
+   "read_only": 1
+  },
+  {
+   "fieldname": "first_payment_url",
+   "fieldtype": "Data",
+   "label": "First Payment URL",
    "read_only": 1
   },
   {

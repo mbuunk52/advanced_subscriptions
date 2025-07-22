@@ -19,6 +19,8 @@ class Subscription(Document):
         auto_renew: DF.Check
         betalingsmethode: DF.Link | None
         einddatum: DF.Date | None
+        first_payment_id: DF.Data | None
+        first_payment_url: DF.Data | None
         mollie_customer_id: DF.Data | None
         mollie_mandate_id: DF.Data | None
         mollie_subscription_id: DF.Data | None
@@ -58,13 +60,42 @@ class Subscription(Document):
                 self.next_payment_date = add_months(self.startdatum, 12)
     
     def after_insert(self):
-        """Create Mollie customer and subscription after inserting"""
+        """Setup recurring payment flow after inserting"""
         if self.betalingsmethode:
             payment_method = frappe.get_doc("Payment Method", self.betalingsmethode)
             if payment_method.payment_provider:
                 provider = frappe.get_doc("Payment Provider", payment_method.payment_provider)
                 if provider.provider_type == "Mollie":
-                    self.create_mollie_subscription()
+                    self.setup_mollie_recurring_payments()
+    
+    def setup_mollie_recurring_payments(self):
+        """Setup proper Mollie recurring payment flow"""
+        try:
+            from advanced_subscriptions.integrations.mollie_api import setup_recurring_payments
+            result = setup_recurring_payments(self.name)
+            
+            if result.get("success"):
+                if result.get("requires_customer_action"):
+                    # Customer needs to complete first payment
+                    self.status = "Pending"
+                    self.first_payment_url = result.get("payment_url")
+                    frappe.msgprint(
+                        msg=f"Customer needs to complete first payment: <a href='{self.first_payment_url}' target='_blank'>Complete Payment</a>",
+                        title="First Payment Required"
+                    )
+                else:
+                    # Subscription created successfully
+                    self.mollie_subscription_id = result.get("mollie_subscription_id")
+                    self.status = "Active"
+                
+                self.db_update()
+            else:
+                frappe.log_error(f"Failed to setup Mollie recurring payments: {result.get('message')}")
+                frappe.throw(f"Failed to setup recurring payments: {result.get('message')}")
+        
+        except Exception as e:
+            frappe.log_error(f"Error setting up Mollie recurring payments: {str(e)}")
+            frappe.throw(f"Error setting up recurring payments: {str(e)}")
     
     def handle_plan_change(self):
         # Get the new plan
@@ -81,19 +112,8 @@ class Subscription(Document):
             self.update_mollie_subscription()
     
     def create_mollie_subscription(self):
-        """Create subscription in Mollie"""
-        try:
-            from advanced_subscriptions.integrations.mollie_api import create_mollie_subscription
-            result = create_mollie_subscription(self.name)
-            
-            if result.get("success"):
-                self.mollie_subscription_id = result.get("mollie_subscription_id")
-                self.db_set("mollie_subscription_id", self.mollie_subscription_id, commit=True)
-            else:
-                frappe.log_error(f"Failed to create Mollie subscription: {result.get('message')}")
-        
-        except Exception as e:
-            frappe.log_error(f"Error creating Mollie subscription: {str(e)}")
+        """Legacy method - now redirects to proper recurring payment setup"""
+        return self.setup_mollie_recurring_payments()
     
     def update_mollie_subscription(self):
         """Update subscription in Mollie"""

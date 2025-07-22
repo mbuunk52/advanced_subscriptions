@@ -74,6 +74,18 @@ def find_payment_record(mollie_payment):
         metadata = json.loads(metadata)
     
     subscription_id = metadata.get("subscription_id")
+    payment_type = metadata.get("payment_type")
+    
+    # For first payments, check if the subscription has this payment ID stored
+    if payment_type == "first_payment" and subscription_id:
+        subscriptions = frappe.get_all("Subscription",
+            filters={"name": subscription_id, "first_payment_id": payment_id},
+            fields=["name"])
+        
+        if subscriptions:
+            # This is a first payment, we might not have a payment record yet
+            return None
+    
     if subscription_id:
         # Find payment records for this subscription
         subscription_payments = frappe.get_all("Payment Record",
@@ -156,6 +168,16 @@ def create_payment_record(mollie_payment):
 def handle_successful_payment(payment_record, mollie_payment):
     """Handle successful payment"""
     try:
+        metadata = mollie_payment.get("metadata", {})
+        if isinstance(metadata, str):
+            metadata = json.loads(metadata)
+        
+        payment_type = metadata.get("payment_type")
+        
+        # Handle first payment completion - this establishes the mandate
+        if payment_type == "first_payment":
+            handle_first_payment_success(payment_record, mollie_payment, metadata)
+        
         # Update subscription if this is a subscription payment
         if payment_record.subscription:
             subscription = frappe.get_doc("Subscription", payment_record.subscription)
@@ -173,6 +195,59 @@ def handle_successful_payment(payment_record, mollie_payment):
     
     except Exception as e:
         frappe.log_error(f"Error handling successful payment: {str(e)}")
+
+
+def handle_first_payment_success(payment_record, mollie_payment, metadata):
+    """Handle successful first payment - create subscription with mandate"""
+    try:
+        subscription_id = metadata.get("subscription_id")
+        if not subscription_id:
+            frappe.log_error("No subscription_id found in first payment metadata")
+            return
+        
+        # Process the first payment completion to create subscription
+        from advanced_subscriptions.integrations.mollie_api import process_first_payment_completion
+        
+        result = process_first_payment_completion(mollie_payment.get("id"))
+        
+        if result.get("success"):
+            frappe.logger().info(f"Successfully created subscription after first payment: {subscription_id}")
+            
+            # Update the subscription with the payment record
+            subscription = frappe.get_doc("Subscription", subscription_id)
+            payment_record.subscription = subscription_id
+            payment_record.save()
+            
+            # Send confirmation email
+            send_first_payment_confirmation(payment_record, subscription)
+        else:
+            frappe.log_error(f"Failed to create subscription after first payment: {result.get('message')}")
+    
+    except Exception as e:
+        frappe.log_error(f"Error handling first payment success: {str(e)}")
+
+
+def send_first_payment_confirmation(payment_record, subscription):
+    """Send first payment confirmation and subscription activation email"""
+    try:
+        admin = frappe.get_doc("Administration", subscription.administration)
+        
+        frappe.sendmail(
+            recipients=[admin.email],
+            subject=f"Subscription Activated - {subscription.plan}",
+            message=f"""
+            <p>Dear {admin.company_name or admin.name},</p>
+            <p>Thank you for your first payment of €{payment_record.amount}!</p>
+            <p>Your {subscription.plan} subscription has been successfully activated and will renew automatically.</p>
+            <p>Payment ID: {payment_record.mollie_payment_id}</p>
+            <p>Subscription ID: {subscription.name}</p>
+            <p>We appreciate your business!</p>
+            """,
+            header="Subscription Activated"
+        )
+    
+    except Exception as e:
+        frappe.log_error(f"Error sending first payment confirmation: {str(e)}")
 
 
 def handle_failed_payment(payment_record, mollie_payment):

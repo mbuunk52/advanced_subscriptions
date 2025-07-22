@@ -132,7 +132,7 @@ def update_payment_status(payment_record, mollie_payment):
         elif new_status in ["Failed", "Cancelled", "Expired"]:
             handle_failed_payment(payment_record, mollie_payment)
         
-        payment_record.save()
+        payment_record.save(ignore_permissions=True)
         frappe.db.commit()
 
 
@@ -158,7 +158,7 @@ def create_payment_record(mollie_payment):
         if subscription_id:
             payment_record.subscription = subscription_id
         
-        payment_record.insert()
+        payment_record.insert(ignore_permissions=True)
         frappe.db.commit()
         
     except Exception as e:
@@ -185,7 +185,7 @@ def handle_successful_payment(payment_record, mollie_payment):
             # Update subscription status to active if it was pending
             if subscription.status == "Pending":
                 subscription.status = "Active"
-                subscription.save()
+                subscription.save(ignore_permissions=True)
             
             # Send payment confirmation email
             send_payment_confirmation(payment_record, subscription)
@@ -216,7 +216,7 @@ def handle_first_payment_success(payment_record, mollie_payment, metadata):
             # Update the subscription with the payment record
             subscription = frappe.get_doc("Subscription", subscription_id)
             payment_record.subscription = subscription_id
-            payment_record.save()
+            payment_record.save(ignore_permissions=True)
             
             # Send confirmation email
             send_first_payment_confirmation(payment_record, subscription)

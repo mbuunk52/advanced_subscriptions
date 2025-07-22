@@ -349,7 +349,7 @@ def create_first_payment(subscription_name):
             amount=plan.prijs,
             currency="EUR",
             description=f"First payment for {plan.naam} subscription",
-            redirect_url=base_url + f"/app/subscription/{subscription.name}",
+            redirect_url=base_url + f"/tlp/instellingen/subscription/payment-result?payment_id={{id}}&type=first_payment",
             webhook_url=webhook_url,
             customer_id=admin.mollie_customer_id,
             sequence_type="first",

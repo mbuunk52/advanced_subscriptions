@@ -49,7 +49,7 @@ def create_payment_for_subscription(subscription_name, amount=None, description=
                 currency=payment_method.currency or "EUR",
                 description=description,
                 customer_id=admin.mollie_customer_id,
-                redirect_url=f"{frappe.utils.get_url()}/app/subscription/{subscription.name}",
+                redirect_url=f"{frappe.utils.get_url()}/tlp/instellingen/{subscription.name}",
                 webhook_url=f"{frappe.utils.get_url()}/api/method/advanced_subscriptions.api.webhooks.mollie_webhook",
                 metadata={
                     "subscription_id": subscription.name,

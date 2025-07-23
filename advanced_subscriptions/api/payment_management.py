@@ -8,88 +8,15 @@ from frappe.utils import today, flt, cint
 
 @frappe.whitelist()
 def create_payment_for_subscription(subscription_name, amount=None, description=None):
-    """Create a one-time payment for a subscription"""
-    try:
-        subscription = frappe.get_doc("Subscription", subscription_name)
-        plan = frappe.get_doc("Plan", subscription.plan)
-        admin = frappe.get_doc("Administration", subscription.administration)
-        
-        if not amount:
-            amount = plan.prijs
-        
-        if not description:
-            description = f"Payment for {plan.naam} subscription"
-        
-        # Get payment method
-        if not subscription.betalingsmethode:
-            return {
-                "success": False,
-                "message": "No payment method configured for this subscription"
-            }
-        
-        payment_method = frappe.get_doc("Payment Method", subscription.betalingsmethode)
-        provider = frappe.get_doc("Payment Provider", payment_method.payment_provider)
-        
-        if provider.provider_type == "Mollie":
-            from advanced_subscriptions.integrations.mollie_api import MollieAPI
-            
-            mollie = MollieAPI(provider.name)
-            
-            # Ensure customer exists
-            if not admin.mollie_customer_id:
-                from advanced_subscriptions.integrations.mollie_api import create_mollie_customer
-                customer_result = create_mollie_customer(admin.name)
-                if not customer_result["success"]:
-                    return customer_result
-                admin.reload()
-            
-            # Create payment
-            payment_data = mollie.create_payment(
-                amount=amount,
-                currency=payment_method.currency or "EUR",
-                description=description,
-                customer_id=admin.mollie_customer_id,
-                redirect_url=f"{frappe.utils.get_url()}/tlp/instellingen/{subscription.name}",
-                webhook_url=f"{frappe.utils.get_url()}/api/method/advanced_subscriptions.api.webhooks.mollie_webhook",
-                metadata={
-                    "subscription_id": subscription.name,
-                    "administration_id": admin.name,
-                    "plan_id": plan.name
-                }
-            )
-            
-            # Create payment record
-            payment_record = frappe.new_doc("Payment Record")
-            payment_record.mollie_payment_id = payment_data["id"]
-            payment_record.amount = flt(amount)
-            payment_record.currency = payment_method.currency or "EUR"
-            payment_record.description = description
-            payment_record.status = "Pending"
-            payment_record.subscription = subscription.name
-            payment_record.administration = admin.name
-            payment_record.plan = plan.name
-            payment_record.mollie_payment_data = frappe.as_json(payment_data)
-            payment_record.insert()
-            
-            return {
-                "success": True,
-                "payment_id": payment_record.name,
-                "checkout_url": payment_data["_links"]["checkout"]["href"],
-                "message": "Payment created successfully"
-            }
-        
-        else:
-            return {
-                "success": False,
-                "message": f"Payment provider {provider.provider_type} not yet implemented"
-            }
+    """
+    DEPRECATED: Use subscription_flow.retry_failed_payment instead
+    Create a one-time payment for a subscription
+    """
+    frappe.log_error("Deprecated function called: create_payment_for_subscription", "Deprecated API Usage")
     
-    except Exception as e:
-        frappe.log_error(f"Error creating payment: {str(e)}")
-        return {
-            "success": False,
-            "message": str(e)
-        }
+    # Redirect to new flow
+    from advanced_subscriptions.api.subscription_flow import retry_failed_payment
+    return retry_failed_payment(subscription_name)
 
 
 @frappe.whitelist()
@@ -117,64 +44,55 @@ def get_subscription_payments(subscription_name):
 
 @frappe.whitelist()
 def setup_subscription_with_mollie(administration_name, plan_name, payment_method_name):
-    """Set up a complete subscription with Mollie integration"""
+    """
+    DEPRECATED: Use subscription_flow.create_subscription_with_payment instead
+    Set up a complete subscription with Mollie integration
+    """
+    frappe.log_error("Deprecated function called: setup_subscription_with_mollie", "Deprecated API Usage")
+    
+    # Redirect to new unified flow
+    from advanced_subscriptions.api.subscription_flow import create_subscription_with_payment
+    return create_subscription_with_payment(administration_name, plan_name, payment_method_name)
+
+
+@frappe.whitelist()
+def create_mandate_for_subscription(subscription_name, consumer_name, consumer_account, consumer_bic=None):
+    """
+    DEPRECATED: Mandate creation is now handled automatically in the subscription flow
+    Create a SEPA mandate for recurring payments
+    """
+    return {
+        "success": False,
+        "message": _("Manual mandate creation is no longer supported. Mandates are created automatically during subscription setup.")
+    }
+
+
+@frappe.whitelist()
+def get_available_payment_methods(currency="EUR", amount=None):
+    """Get available payment methods for a currency and amount"""
     try:
-        # Validate inputs
-        admin = frappe.get_doc("Administration", administration_name)
-        plan = frappe.get_doc("Plan", plan_name)
-        payment_method = frappe.get_doc("Payment Method", payment_method_name)
-        provider = frappe.get_doc("Payment Provider", payment_method.payment_provider)
+        filters = [
+            ["is_active", "=", 1],
+            ["currency", "=", currency]
+        ]
         
-        if provider.provider_type != "Mollie":
-            return {
-                "success": False,
-                "message": "This function only supports Mollie payment provider"
-            }
-        
-        # Check if subscription already exists
-        existing = frappe.get_all("Subscription",
-            filters={
-                "administration": administration_name,
-                "status": ["in", ["Active", "Pending"]]
-            })
-        
-        if existing:
-            return {
-                "success": False,
-                "message": "An active subscription already exists for this administration"
-            }
-        
-        # Create subscription
-        subscription = frappe.new_doc("Subscription")
-        subscription.administration = administration_name
-        subscription.plan = plan_name
-        subscription.betalingsmethode = payment_method_name
-        subscription.status = "Pending"
-        subscription.auto_renew = 1
-        subscription.insert()
-        
-        # Create initial payment
-        payment_result = create_payment_for_subscription(
-            subscription.name,
-            amount=plan.prijs,
-            description=f"Initial payment for {plan.naam} subscription"
+        payment_methods = frappe.get_all("Payment Method",
+            filters=filters,
+            fields=["name", "method_name", "payment_provider", "provider_method_id", "description"]
         )
         
-        if payment_result["success"]:
-            return {
-                "success": True,
-                "subscription_id": subscription.name,
-                "payment_id": payment_result["payment_id"],
-                "checkout_url": payment_result["checkout_url"],
-                "message": "Subscription and payment created successfully"
-            }
-        else:
-            # Rollback subscription creation
-            subscription.delete()
-            return payment_result
+        # Filter by amount if provided
+        if amount:
+            # Add amount-based filtering logic here if needed
+            pass
+        
+        return {
+            "success": True,
+            "payment_methods": payment_methods
+        }
     
     except Exception as e:
-        frappe.log_error(f"Error setting up subscription: {str(e)}")
+        frappe.log_error(f"Error getting payment methods: {str(e)}")
         return {
             "success": False,
             "message": str(e)
@@ -182,55 +100,57 @@ def setup_subscription_with_mollie(administration_name, plan_name, payment_metho
 
 
 @frappe.whitelist()
-def create_mandate_for_subscription(subscription_name, consumer_name, consumer_account, consumer_bic=None):
-    """Create a SEPA mandate for recurring payments"""
+def cancel_subscription(subscription_name, reason=None):
+    """Cancel a subscription - simplified version"""
     try:
         subscription = frappe.get_doc("Subscription", subscription_name)
-        admin = frappe.get_doc("Administration", subscription.administration)
-        payment_method = frappe.get_doc("Payment Method", subscription.betalingsmethode)
-        provider = frappe.get_doc("Payment Provider", payment_method.payment_provider)
         
-        if provider.provider_type != "Mollie":
+        if subscription.status == "Cancelled":
             return {
                 "success": False,
-                "message": "Mandate creation only supported for Mollie"
+                "message": _("Subscription is already cancelled")
             }
         
-        from advanced_subscriptions.integrations.mollie_api import MollieAPI
+        # Cancel in Mollie if exists
+        if subscription.mollie_subscription_id:
+            try:
+                from advanced_subscriptions.integrations.mollie_api import MollieAPI
+                mollie = MollieAPI()
+                mollie.cancel_subscription(subscription.mollie_customer_id, subscription.mollie_subscription_id)
+            except Exception as e:
+                frappe.log_error(f"Error cancelling Mollie subscription: {str(e)}")
+                # Continue with cancellation even if Mollie fails
         
-        mollie = MollieAPI(provider.name)
+        # Update subscription status
+        subscription.status = "Cancelled"
+        if reason:
+            subscription.cancellation_reason = reason
         
-        # Ensure customer exists
-        if not admin.mollie_customer_id:
-            from advanced_subscriptions.integrations.mollie_api import create_mollie_customer
-            customer_result = create_mollie_customer(admin.name)
-            if not customer_result["success"]:
-                return customer_result
-            admin.reload()
-        
-        # Create mandate
-        mandate_data = mollie.create_mandate(
-            customer_id=admin.mollie_customer_id,
-            method="directdebit",
-            consumer_name=consumer_name,
-            consumer_account=consumer_account,
-            consumer_bic=consumer_bic,
-            signature_date=today(),
-            mandate_reference=f"SUB-{subscription.name}"
-        )
-        
-        # Update subscription with mandate ID
-        subscription.mollie_mandate_id = mandate_data["id"]
         subscription.save()
+        
+        # Send cancellation notification
+        try:
+            admin = frappe.get_doc("Administration", subscription.administration)
+            frappe.sendmail(
+                recipients=[admin.email],
+                subject=f"Subscription Cancelled - {subscription.plan}",
+                message=f"""
+                <p>Dear {admin.company_name or admin.name},</p>
+                <p>Your subscription to {subscription.plan} has been cancelled.</p>
+                <p>Your subscription will remain active until {subscription.einddatum}.</p>
+                <p>Thank you for using our services.</p>
+                """
+            )
+        except Exception as e:
+            frappe.log_error(f"Error sending cancellation email: {str(e)}")
         
         return {
             "success": True,
-            "mandate_id": mandate_data["id"],
-            "message": "Mandate created successfully"
+            "message": _("Subscription cancelled successfully")
         }
     
     except Exception as e:
-        frappe.log_error(f"Error creating mandate: {str(e)}")
+        frappe.log_error(f"Error cancelling subscription: {str(e)}")
         return {
             "success": False,
             "message": str(e)

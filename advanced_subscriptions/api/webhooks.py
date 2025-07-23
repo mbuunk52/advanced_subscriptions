@@ -11,7 +11,10 @@ from frappe.utils import now
 
 @frappe.whitelist(allow_guest=True)
 def mollie_webhook():
-    """Handle Mollie webhook notifications"""
+    """
+    Handle Mollie webhook notifications
+    Now redirects to the new unified subscription flow
+    """
     try:
         # Get the request data
         data = frappe.local.form_dict
@@ -24,8 +27,9 @@ def mollie_webhook():
         # Log the webhook for debugging
         frappe.logger().info(f"Mollie webhook received for payment: {payment_id}")
         
-        # Process the payment update
-        process_mollie_payment_update(payment_id)
+        # Use the new unified webhook handler
+        from advanced_subscriptions.api.subscription_flow import webhook_handler
+        webhook_handler()
         
         return "OK"
     

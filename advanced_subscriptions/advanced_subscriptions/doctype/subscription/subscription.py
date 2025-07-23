@@ -19,6 +19,7 @@ class Subscription(Document):
         administration: DF.Link
         auto_renew: DF.Check
         betalingsmethode: DF.Link | None
+        billing_address: DF.Link | None
         einddatum: DF.Date | None
         first_payment_id: DF.Data | None
         first_payment_url: DF.Data | None
@@ -62,41 +63,20 @@ class Subscription(Document):
     
     def after_insert(self):
         """Setup recurring payment flow after inserting"""
-        if self.betalingsmethode:
-            payment_method = frappe.get_doc("Payment Method", self.betalingsmethode)
-            if payment_method.payment_provider:
-                provider = frappe.get_doc("Payment Provider", payment_method.payment_provider)
-                if provider.provider_type == "Mollie":
-                    self.setup_mollie_recurring_payments()
+        # The new subscription flow handles payment setup externally
+        # No automatic setup needed here anymore
+        pass
     
     def setup_mollie_recurring_payments(self):
-        """Setup proper Mollie recurring payment flow"""
-        try:
-            from advanced_subscriptions.integrations.mollie_api import setup_recurring_payments
-            result = setup_recurring_payments(self.name)
-            
-            if result.get("success"):
-                if result.get("requires_customer_action"):
-                    # Customer needs to complete first payment
-                    self.status = "Pending"
-                    self.first_payment_url = result.get("payment_url")
-                    frappe.msgprint(
-                        msg=f"Customer needs to complete first payment: <a href='{self.first_payment_url}' target='_blank'>Complete Payment</a>",
-                        title="First Payment Required"
-                    )
-                else:
-                    # Subscription created successfully
-                    self.mollie_subscription_id = result.get("mollie_subscription_id")
-                    self.status = "Active"
-                
-                self.db_update()
-            else:
-                frappe.log_error(f"Failed to setup Mollie recurring payments: {result.get('message')}")
-                frappe.throw(_("Failed to setup recurring payments: {0}").format(result.get('message')))
-        
-        except Exception as e:
-            frappe.log_error(f"Error setting up Mollie recurring payments: {str(e)}")
-            frappe.throw(_("Error setting up recurring payments: {0}").format(str(e)))
+        """
+        DEPRECATED: Use subscription_flow.create_subscription_with_payment instead
+        Setup proper Mollie recurring payment flow
+        """
+        frappe.log_error("Deprecated method called: setup_mollie_recurring_payments", "Deprecated API Usage")
+        return {
+            "success": False,
+            "message": _("This method is deprecated. Use the new subscription flow.")
+        }
     
     def handle_plan_change(self):
         # Get the new plan
@@ -108,17 +88,33 @@ class Subscription(Document):
         elif new_plan.periode == "Year":
             self.einddatum = add_months(self.startdatum, 12)
         
-        # Update Mollie subscription if exists
-        if self.mollie_subscription_id:
+        # Update Mollie subscription only if we have valid IDs
+        if self.has_valid_mollie_data():
             self.update_mollie_subscription()
+        else:
+            frappe.logger().info(f"Skipping Mollie subscription update for plan change - invalid Mollie data")
     
     def create_mollie_subscription(self):
         """Legacy method - now redirects to proper recurring payment setup"""
         return self.setup_mollie_recurring_payments()
     
+    def has_valid_mollie_data(self):
+        """Check if subscription has valid Mollie customer and subscription IDs"""
+        return (
+            self.mollie_customer_id 
+            and self.mollie_customer_id.startswith('cst_')
+            and self.mollie_subscription_id 
+            and self.mollie_subscription_id.startswith('sub_')
+        )
+    
     def update_mollie_subscription(self):
         """Update subscription in Mollie"""
         try:
+            # Skip if no valid Mollie subscription exists
+            if not self.has_valid_mollie_data():
+                frappe.logger().info(f"Skipping Mollie subscription update - invalid Mollie data (customer: {self.mollie_customer_id}, subscription: {self.mollie_subscription_id})")
+                return
+            
             from advanced_subscriptions.integrations.mollie_api import MollieAPI
             
             mollie = MollieAPI()
@@ -140,24 +136,25 @@ class Subscription(Document):
     def cancel_mollie_subscription(self):
         """Cancel subscription in Mollie"""
         try:
-            if self.mollie_subscription_id and self.mollie_customer_id:
-                from advanced_subscriptions.integrations.mollie_api import MollieAPI
+            if not self.has_valid_mollie_data():
+                frappe.logger().info(f"No valid Mollie subscription to cancel for subscription {self.name} (customer: {self.mollie_customer_id}, subscription: {self.mollie_subscription_id})")
+                return
                 
-                mollie = MollieAPI()
-                result = mollie.cancel_subscription(
-                    customer_id=self.mollie_customer_id,
-                    subscription_id=self.mollie_subscription_id
-                )
-                
-                if result.get("success"):
-                    frappe.logger().info(f"Successfully cancelled Mollie subscription {self.mollie_subscription_id}")
-                    # Clear Mollie subscription ID to prevent further operations
-                    self.mollie_subscription_id = None
-                    self.db_update()
-                else:
-                    frappe.log_error(f"Failed to cancel Mollie subscription: {result.get('message')}")
+            from advanced_subscriptions.integrations.mollie_api import MollieAPI
+            
+            mollie = MollieAPI()
+            result = mollie.cancel_subscription(
+                customer_id=self.mollie_customer_id,
+                subscription_id=self.mollie_subscription_id
+            )
+            
+            if result.get("success"):
+                frappe.logger().info(f"Successfully cancelled Mollie subscription {self.mollie_subscription_id}")
+                # Clear Mollie subscription ID to prevent further operations
+                self.mollie_subscription_id = None
+                self.db_update()
             else:
-                frappe.logger().info(f"No Mollie subscription to cancel for subscription {self.name}")
+                frappe.log_error(f"Failed to cancel Mollie subscription: {result.get('message')}")
         
         except Exception as e:
             frappe.log_error(f"Error cancelling Mollie subscription: {str(e)}")
@@ -168,7 +165,9 @@ class Subscription(Document):
         if self.status == "Active" and getdate(self.einddatum) <= getdate(add_days(today(), 7)):
             # Send notification about expiring subscription
             self.send_expiry_notification()
-            self.update_mollie_subscription()
+            # Only update Mollie subscription if we have valid IDs
+            if self.has_valid_mollie_data():
+                self.update_mollie_subscription()
         
         # Handle status changes
         if self.has_value_changed("status"):
@@ -178,7 +177,7 @@ class Subscription(Document):
     def on_trash(self):
         """Called when subscription is being deleted - cancel Mollie subscription"""
         try:
-            if self.mollie_subscription_id and self.mollie_customer_id:
+            if self.has_valid_mollie_data():
                 self.cancel_mollie_subscription()
                 frappe.logger().info(f"Cancelled Mollie subscription {self.mollie_subscription_id} for deleted subscription {self.name}")
         except Exception as e:
@@ -187,7 +186,7 @@ class Subscription(Document):
     def before_cancel(self):
         """Called before subscription is cancelled - cancel Mollie subscription"""
         try:
-            if self.mollie_subscription_id and self.mollie_customer_id:
+            if self.has_valid_mollie_data():
                 self.cancel_mollie_subscription()
                 frappe.logger().info(f"Cancelled Mollie subscription {self.mollie_subscription_id} for cancelled subscription {self.name}")
         except Exception as e:

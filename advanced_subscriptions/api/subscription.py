@@ -4,48 +4,18 @@ from frappe.utils import today, add_months, getdate
 
 @frappe.whitelist()
 def create_subscription(administration, plan):
-    """Create a new subscription"""
-    if not administratie or not plan:
-        frappe.throw(_("Administratie and plan are required"))
+    """
+    DEPRECATED: Use subscription_flow.create_subscription_with_payment instead
+    Create a new subscription
+    """
+    frappe.log_error("Deprecated function called: create_subscription", "Deprecated API Usage")
     
-    try:
-        # Check if a subscription already exists for this administration
-        existing = frappe.get_all("Subscription", 
-            filters={"administration": administration, "status": "Active"},
-            fields=["name"])
-        
-        if existing:
-            frappe.throw(_("An active subscription already exists for this administration"))
-        
-        # Get the plan details
-        plan_doc = frappe.get_doc("Plan", plan)
-        
-        # Create the subscription
-        subscription = frappe.new_doc("Subscription")
-        subscription.administration = administration
-        subscription.plan = plan
-        subscription.status = "Active"
-        subscription.startdatum = today()
-        
-        # Set end date based on plan period
-        if plan_doc.periode == "Month":
-            subscription.einddatum = add_months(today(), 1)
-        elif plan_doc.periode == "Year":
-            subscription.einddatum = add_months(today(), 12)
-        
-        subscription.insert()
-        
-        return {
-            "success": True,
-            "message": _("Subscription created successfully"),
-            "subscription": subscription.name
-        }
-    except Exception as e:
-        frappe.log_error(f"Error creating subscription: {str(e)}")
-        return {
-            "success": False,
-            "message": str(e)
-        }
+    # For backward compatibility, redirect to new flow
+    # Note: This requires a payment method to be specified
+    return {
+        "success": False,
+        "message": _("This function is deprecated. Please use the new subscription flow with payment method.")
+    }
 
 @frappe.whitelist()
 def change_plan(subscription, new_plan):
@@ -78,30 +48,15 @@ def change_plan(subscription, new_plan):
 
 @frappe.whitelist()
 def cancel_subscription(subscription):
-    """Cancel an existing subscription"""
-    if not subscription:
-        frappe.throw(_("Subscription is required"))
+    """
+    DEPRECATED: Use payment_management.cancel_subscription instead
+    Cancel an existing subscription
+    """
+    frappe.log_error("Deprecated function called: cancel_subscription", "Deprecated API Usage")
     
-    try:
-        subscription_doc = frappe.get_doc("Subscription", subscription)
-        
-        if subscription_doc.status != "Active":
-            frappe.throw(_("Cannot cancel an inactive subscription"))
-        
-        # Update the status
-        subscription_doc.status = "Cancelled"
-        subscription_doc.save()
-        
-        return {
-            "success": True,
-            "message": _("Subscription cancelled successfully")
-        }
-    except Exception as e:
-        frappe.log_error(f"Error cancelling subscription: {str(e)}")
-        return {
-            "success": False,
-            "message": str(e)
-        }
+    # Redirect to new implementation
+    from advanced_subscriptions.api.payment_management import cancel_subscription as new_cancel
+    return new_cancel(subscription)
     
 @frappe.whitelist()
 def get_plans_with_features():

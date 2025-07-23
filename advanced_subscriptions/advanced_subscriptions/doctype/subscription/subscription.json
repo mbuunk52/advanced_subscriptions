@@ -6,6 +6,7 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
+  "basics_section",
   "administration",
   "plan",
   "status",
@@ -13,6 +14,8 @@
   "startdatum",
   "einddatum",
   "betalingsmethode",
+  "billing_details_section",
+  "billing_address",
   "section_break_8",
   "pay_as_you_go_items",
   "mollie_section",
@@ -143,11 +146,27 @@
    "fieldtype": "Int",
    "label": "Payment Failure Count",
    "read_only": 1
+  },
+  {
+   "fieldname": "basics_section",
+   "fieldtype": "Section Break",
+   "label": "Basics"
+  },
+  {
+   "fieldname": "billing_details_section",
+   "fieldtype": "Section Break",
+   "label": "Billing details"
+  },
+  {
+   "fieldname": "billing_address",
+   "fieldtype": "Link",
+   "label": "Billing address",
+   "options": "Address"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-07-22 11:56:22.407490",
+ "modified": "2025-07-23 11:13:45.714825",
  "modified_by": "Administrator",
  "module": "Advanced Subscriptions",
  "name": "Subscription",

@@ -356,7 +356,7 @@ def _create_first_payment(subscription, flow_manager):
             amount=plan.prijs,
             currency="EUR",
             description=_("First payment for {0} subscription").format(plan.naam),
-            redirect_url=f"{frappe.utils.get_url()}/tlp/subscription/payment-result?subscription_id={subscription.name}",
+            redirect_url=f"{frappe.utils.get_url()}/tlp/payment-result?subscription_id={subscription.name}",
             webhook_url=f"{frappe.utils.get_url()}/api/method/advanced_subscriptions.api.subscription_flow.webhook_handler",
             customer_id=admin.mollie_customer_id,
             sequence_type="first",

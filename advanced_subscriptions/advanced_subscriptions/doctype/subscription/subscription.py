@@ -144,13 +144,24 @@ class Subscription(Document):
                 from advanced_subscriptions.integrations.mollie_api import MollieAPI
                 
                 mollie = MollieAPI()
-                mollie.cancel_subscription(
+                result = mollie.cancel_subscription(
                     customer_id=self.mollie_customer_id,
                     subscription_id=self.mollie_subscription_id
                 )
+                
+                if result.get("success"):
+                    frappe.logger().info(f"Successfully cancelled Mollie subscription {self.mollie_subscription_id}")
+                    # Clear Mollie subscription ID to prevent further operations
+                    self.mollie_subscription_id = None
+                    self.db_update()
+                else:
+                    frappe.log_error(f"Failed to cancel Mollie subscription: {result.get('message')}")
+            else:
+                frappe.logger().info(f"No Mollie subscription to cancel for subscription {self.name}")
         
         except Exception as e:
             frappe.log_error(f"Error cancelling Mollie subscription: {str(e)}")
+            # Don't raise exception here to prevent blocking subscription cancellation
     
     def on_update(self):
         # Check if subscription is about to expire
@@ -163,6 +174,24 @@ class Subscription(Document):
         if self.has_value_changed("status"):
             if self.status == "Cancelled":
                 self.cancel_mollie_subscription()
+    
+    def on_trash(self):
+        """Called when subscription is being deleted - cancel Mollie subscription"""
+        try:
+            if self.mollie_subscription_id and self.mollie_customer_id:
+                self.cancel_mollie_subscription()
+                frappe.logger().info(f"Cancelled Mollie subscription {self.mollie_subscription_id} for deleted subscription {self.name}")
+        except Exception as e:
+            frappe.log_error(f"Error cancelling Mollie subscription on delete: {str(e)}")
+    
+    def before_cancel(self):
+        """Called before subscription is cancelled - cancel Mollie subscription"""
+        try:
+            if self.mollie_subscription_id and self.mollie_customer_id:
+                self.cancel_mollie_subscription()
+                frappe.logger().info(f"Cancelled Mollie subscription {self.mollie_subscription_id} for cancelled subscription {self.name}")
+        except Exception as e:
+            frappe.log_error(f"Error cancelling Mollie subscription on cancel: {str(e)}")
     
     def send_expiry_notification(self):
         """Send notification about expiring subscription"""

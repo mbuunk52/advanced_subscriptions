@@ -349,7 +349,7 @@ def create_first_payment(subscription_name):
             amount=plan.prijs,
             currency="EUR",
             description=_("First payment for {0} subscription").format(plan.naam),
-            redirect_url=base_url + f"/tlp/instellingen/subscription/payment-result?payment_id={{id}}&type=first_payment",
+            redirect_url=base_url + f"/tlp/payment-result?payment_id={{id}}&type=first_payment",
             webhook_url=webhook_url,
             customer_id=admin.mollie_customer_id,
             sequence_type="first",
@@ -365,10 +365,51 @@ def create_first_payment(subscription_name):
         subscription.first_payment_id = payment_data.id
         subscription.save()
         
+        # Get the correct checkout URL from the payment links
+        checkout_url = None
+        
+        # Try different ways to get the checkout URL
+        try:
+            # Method 1: Links object with checkout href (most reliable)
+            if hasattr(payment_data, '_links') and payment_data._links and 'checkout' in payment_data._links:
+                checkout_url = payment_data._links['checkout']['href']
+            # Method 2: Direct property access
+            elif hasattr(payment_data, 'checkout_url') and payment_data.checkout_url:
+                checkout_url = payment_data.checkout_url
+            # Method 3: Alternative links structure  
+            elif hasattr(payment_data, 'links') and payment_data.links and 'checkout' in payment_data.links:
+                checkout_url = payment_data.links['checkout']['href']
+            # Method 4: Get from raw data if available
+            elif hasattr(payment_data, '_get_property'):
+                links = payment_data._get_property('_links')
+                if links and 'checkout' in links:
+                    checkout_url = links['checkout']['href']
+        except (KeyError, TypeError, AttributeError) as e:
+            frappe.logger().error(f"Error getting checkout URL: {str(e)}")
+        
+        # If we still don't have a checkout URL, log the payment object for debugging
+        if not checkout_url:
+            frappe.logger().error(f"Could not find checkout URL. Payment ID: {payment_data.id}")
+            frappe.logger().error(f"Payment object type: {type(payment_data)}")
+            frappe.logger().error(f"Payment object attributes: {[attr for attr in dir(payment_data) if not attr.startswith('_')]}")
+            
+            # Check if there's a get_link method
+            if hasattr(payment_data, 'get_link'):
+                try:
+                    checkout_url = payment_data.get_link('checkout')
+                except:
+                    pass
+            
+            # If still no URL, don't construct one manually - let Mollie handle it
+            if not checkout_url:
+                frappe.throw(_("Could not retrieve checkout URL from Mollie. Payment ID: {0}").format(payment_data.id))
+        
+        frappe.logger().info(f"Using checkout URL: {checkout_url}")
+        
         return {
             "success": True,
             "payment_id": payment_data.id,
-            "payment_url": payment_data.checkout_url,
+            "payment_url": checkout_url,
             "message": _("First payment created successfully")
         }
     
@@ -473,9 +514,9 @@ def create_mollie_customer(administration_name):
             }
         )
         
-        # Store Mollie customer ID in administration
+        # Store Mollie customer ID in administration using db_update to bypass validation
         admin.mollie_customer_id = customer_data.id
-        admin.save()
+        admin.db_update()
         
         return {
             "success": True,

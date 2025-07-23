@@ -47,14 +47,14 @@ class MollieAPI:
             customer = self.client.customers.create(data)
             return customer
         except MollieError as e:
-            frappe.throw(f"Mollie API Error: {str(e)}")
+            frappe.throw(_("Mollie API Error: {0}").format(str(e)))
     
     def get_customer(self, customer_id):
         """Get customer details"""
         try:
             return self.client.customers.get(customer_id)
         except MollieError as e:
-            frappe.throw(f"Mollie API Error: {str(e)}")
+            frappe.throw(_("Mollie API Error: {0}").format(str(e)))
     
     def update_customer(self, customer_id, name=None, email=None, metadata=None):
         """Update customer details"""
@@ -69,14 +69,14 @@ class MollieAPI:
             
             return self.client.customers.update(customer_id, data)
         except MollieError as e:
-            frappe.throw(f"Mollie API Error: {str(e)}")
+            frappe.throw(_("Mollie API Error: {0}").format(str(e)))
     
     def delete_customer(self, customer_id):
         """Delete a customer"""
         try:
             return self.client.customers.delete(customer_id)
         except MollieError as e:
-            frappe.throw(f"Mollie API Error: {str(e)}")
+            frappe.throw(_("Mollie API Error: {0}").format(str(e)))
     
     # Mandate Management
     def create_mandate(self, customer_id, method, consumer_name, consumer_account, consumer_bic=None, signature_date=None, mandate_reference=None):
@@ -98,7 +98,7 @@ class MollieAPI:
             customer = self.client.customers.get(customer_id)
             return customer.mandates.create(data)
         except MollieError as e:
-            frappe.throw(f"Mollie API Error: {str(e)}")
+            frappe.throw(_("Mollie API Error: {0}").format(str(e)))
     
     def get_mandates(self, customer_id):
         """Get customer mandates"""
@@ -106,7 +106,7 @@ class MollieAPI:
             customer = self.client.customers.get(customer_id)
             return customer.mandates.list()
         except MollieError as e:
-            frappe.throw(f"Mollie API Error: {str(e)}")
+            frappe.throw(_("Mollie API Error: {0}").format(str(e)))
     
     def get_mandate(self, customer_id, mandate_id):
         """Get specific mandate"""
@@ -114,7 +114,7 @@ class MollieAPI:
             customer = self.client.customers.get(customer_id)
             return customer.mandates.get(mandate_id)
         except MollieError as e:
-            frappe.throw(f"Mollie API Error: {str(e)}")
+            frappe.throw(_("Mollie API Error: {0}").format(str(e)))
     
     def delete_mandate(self, customer_id, mandate_id):
         """Delete a mandate"""
@@ -122,7 +122,7 @@ class MollieAPI:
             customer = self.client.customers.get(customer_id)
             return customer.mandates.delete(mandate_id)
         except MollieError as e:
-            frappe.throw(f"Mollie API Error: {str(e)}")
+            frappe.throw(_("Mollie API Error: {0}").format(str(e)))
     
     # Subscription Management
     def create_subscription(self, customer_id, amount, currency, interval, description, times=None, start_date=None, webhook_url=None, metadata=None):
@@ -149,7 +149,7 @@ class MollieAPI:
             customer = self.client.customers.get(customer_id)
             return customer.subscriptions.create(data)
         except MollieError as e:
-            frappe.throw(f"Mollie API Error: {str(e)}")
+            frappe.throw(_("Mollie API Error: {0}").format(str(e)))
     
     def get_subscriptions(self, customer_id):
         """Get customer subscriptions"""
@@ -157,7 +157,7 @@ class MollieAPI:
             customer = self.client.customers.get(customer_id)
             return customer.subscriptions.list()
         except MollieError as e:
-            frappe.throw(f"Mollie API Error: {str(e)}")
+            frappe.throw(_("Mollie API Error: {0}").format(str(e)))
     
     def get_subscription(self, customer_id, subscription_id):
         """Get specific subscription"""
@@ -165,7 +165,7 @@ class MollieAPI:
             customer = self.client.customers.get(customer_id)
             return customer.subscriptions.get(subscription_id)
         except MollieError as e:
-            frappe.throw(f"Mollie API Error: {str(e)}")
+            frappe.throw(_("Mollie API Error: {0}").format(str(e)))
     
     def update_subscription(self, customer_id, subscription_id, amount=None, currency=None, times=None, start_date=None, description=None, metadata=None):
         """Update a subscription"""
@@ -189,7 +189,7 @@ class MollieAPI:
             customer = self.client.customers.get(customer_id)
             return customer.subscriptions.update(subscription_id, data)
         except MollieError as e:
-            frappe.throw(f"Mollie API Error: {str(e)}")
+            frappe.throw(_("Mollie API Error: {0}").format(str(e)))
     
     def cancel_subscription(self, customer_id, subscription_id):
         """Cancel a subscription"""
@@ -197,7 +197,7 @@ class MollieAPI:
             customer = self.client.customers.get(customer_id)
             return customer.subscriptions.delete(subscription_id)
         except MollieError as e:
-            frappe.throw(f"Mollie API Error: {str(e)}")
+            frappe.throw(_("Mollie API Error: {0}").format(str(e)))
     
     # Payment Management
     def create_payment(self, amount, currency, description, redirect_url=None, webhook_url=None, method=None, customer_id=None, mandate_id=None, sequence_type=None, metadata=None):
@@ -234,14 +234,14 @@ class MollieAPI:
                     data['customerId'] = customer_id
                 return self.client.payments.create(data)
         except MollieError as e:
-            frappe.throw(f"Mollie API Error: {str(e)}")
+            frappe.throw(_("Mollie API Error: {0}").format(str(e)))
     
     def get_payment(self, payment_id):
         """Get payment details"""
         try:
             return self.client.payments.get(payment_id)
         except MollieError as e:
-            frappe.throw(f"Mollie API Error: {str(e)}")
+            frappe.throw(_("Mollie API Error: {0}").format(str(e)))
     
     def get_customer_payments(self, customer_id):
         """Get customer payments"""
@@ -249,7 +249,7 @@ class MollieAPI:
             customer = self.client.customers.get(customer_id)
             return customer.payments.list()
         except MollieError as e:
-            frappe.throw(f"Mollie API Error: {str(e)}")
+            frappe.throw(_("Mollie API Error: {0}").format(str(e)))
     
     def get_subscription_payments(self, customer_id, subscription_id):
         """Get subscription payments"""
@@ -258,7 +258,7 @@ class MollieAPI:
             subscription = customer.subscriptions.get(subscription_id)
             return subscription.payments.list()
         except MollieError as e:
-            frappe.throw(f"Mollie API Error: {str(e)}")
+            frappe.throw(_("Mollie API Error: {0}").format(str(e)))
     
     # Methods Information
     def get_payment_methods(self):
@@ -266,14 +266,14 @@ class MollieAPI:
         try:
             return self.client.methods.list()
         except MollieError as e:
-            frappe.throw(f"Mollie API Error: {str(e)}")
+            frappe.throw(_("Mollie API Error: {0}").format(str(e)))
     
     def get_payment_method(self, method_id):
         """Get specific payment method details"""
         try:
             return self.client.methods.get(method_id)
         except MollieError as e:
-            frappe.throw(f"Mollie API Error: {str(e)}")
+            frappe.throw(_("Mollie API Error: {0}").format(str(e)))
 
 
 @frappe.whitelist()
@@ -311,7 +311,7 @@ def setup_recurring_payments(subscription_name):
                 "success": True,
                 "requires_customer_action": True,
                 "payment_url": first_payment_result["payment_url"],
-                "message": "Customer needs to complete first payment to establish mandate"
+                "message": _("Customer needs to complete first payment to establish mandate")
             }
         
         # Step 4: Create subscription if mandate exists
@@ -319,7 +319,7 @@ def setup_recurring_payments(subscription_name):
         return subscription_result
     
     except Exception as e:
-        frappe.log_error(f"Error setting up recurring payments: {str(e)}")
+        frappe.log_error("Error setting up recurring payments", str(e))
         return {
             "success": False,
             "message": str(e)
@@ -348,7 +348,7 @@ def create_first_payment(subscription_name):
         payment_data = mollie.create_payment(
             amount=plan.prijs,
             currency="EUR",
-            description=f"First payment for {plan.naam} subscription",
+            description=_("First payment for {0} subscription").format(plan.naam),
             redirect_url=base_url + f"/tlp/instellingen/subscription/payment-result?payment_id={{id}}&type=first_payment",
             webhook_url=webhook_url,
             customer_id=admin.mollie_customer_id,
@@ -369,11 +369,11 @@ def create_first_payment(subscription_name):
             "success": True,
             "payment_id": payment_data.id,
             "payment_url": payment_data.checkout_url,
-            "message": "First payment created successfully"
+            "message": _("First payment created successfully")
         }
     
     except Exception as e:
-        frappe.log_error(f"Error creating first payment: {str(e)}")
+        frappe.log_error("Error creating first payment", str(e))
         return {
             "success": False,
             "message": str(e)
@@ -401,7 +401,7 @@ def create_mollie_subscription_with_mandate(subscription_name, mandate_id=None):
         if not mandate_id:
             return {
                 "success": False,
-                "message": "No valid mandate found. Please complete the first payment first."
+                "message": _("No valid mandate found. Please complete the first payment first.")
             }
         
         # Map plan period to Mollie interval
@@ -426,7 +426,7 @@ def create_mollie_subscription_with_mandate(subscription_name, mandate_id=None):
             amount=plan.prijs,
             currency="EUR",
             interval=interval,
-            description=f"Subscription to {plan.naam}",
+            description=_("Subscription to {0}").format(plan.naam),
             webhook_url=webhook_url,
             metadata={
                 "subscription_id": subscription.name,
@@ -445,11 +445,11 @@ def create_mollie_subscription_with_mandate(subscription_name, mandate_id=None):
         return {
             "success": True,
             "mollie_subscription_id": mollie_subscription.id,
-            "message": "Mollie subscription created successfully"
+            "message": _("Mollie subscription created successfully")
         }
     
     except Exception as e:
-        frappe.log_error(f"Error creating Mollie subscription: {str(e)}")
+        frappe.log_error("Error creating Mollie subscription", str(e))
         return {
             "success": False,
             "message": str(e)
@@ -480,11 +480,11 @@ def create_mollie_customer(administration_name):
         return {
             "success": True,
             "customer_id": customer_data.id,
-            "message": "Mollie customer created successfully"
+            "message": _("Mollie customer created successfully")
         }
     
     except Exception as e:
-        frappe.log_error(f"Error creating Mollie customer: {str(e)}")
+        frappe.log_error("Error creating Mollie customer", str(e))
         return {
             "success": False,
             "message": str(e)
@@ -501,7 +501,7 @@ def check_mandate_status(administration_name):
             return {
                 "success": False,
                 "has_mandate": False,
-                "message": "No Mollie customer found"
+                "message": _("No Mollie customer found")
             }
         
         mollie = MollieAPI()
@@ -517,7 +517,7 @@ def check_mandate_status(administration_name):
         }
     
     except Exception as e:
-        frappe.log_error(f"Error checking mandate status: {str(e)}")
+        frappe.log_error("Error checking mandate status", str(e))
         return {
             "success": False,
             "message": str(e)
@@ -534,7 +534,7 @@ def process_first_payment_completion(payment_id):
         if payment.status != 'paid':
             return {
                 "success": False,
-                "message": f"Payment not completed yet. Status: {payment.status}"
+                "message": _("Payment not completed yet. Status: {0}").format(payment.status)
             }
         
         # Find subscription from metadata
@@ -544,7 +544,7 @@ def process_first_payment_completion(payment_id):
         if not subscription_name:
             return {
                 "success": False,
-                "message": "No subscription found in payment metadata"
+                "message": _("No subscription found in payment metadata")
             }
         
         subscription = frappe.get_doc("Subscription", subscription_name)
@@ -561,7 +561,7 @@ def process_first_payment_completion(payment_id):
         if not valid_mandate:
             return {
                 "success": False,
-                "message": "No valid mandate found after first payment"
+                "message": _("No valid mandate found after first payment")
             }
         
         # Create subscription now that we have a valid mandate
@@ -575,7 +575,7 @@ def process_first_payment_completion(payment_id):
         return result
     
     except Exception as e:
-        frappe.log_error(f"Error processing first payment completion: {str(e)}")
+        frappe.log_error("Error processing first payment completion", str(e))
         return {
             "success": False,
             "message": str(e)

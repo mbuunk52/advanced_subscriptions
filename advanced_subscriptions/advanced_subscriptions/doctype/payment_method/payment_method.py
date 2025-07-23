@@ -2,6 +2,7 @@
 # For license information, please see license.txt
 
 import frappe
+from frappe import _
 from frappe.model.document import Document
 
 class PaymentMethod(Document):
@@ -28,13 +29,13 @@ class PaymentMethod(Document):
         if self.payment_provider:
             provider = frappe.get_doc("Payment Provider", self.payment_provider)
             if not provider.is_active:
-                frappe.throw(f"Payment Provider '{self.payment_provider}' is not active")
+                frappe.throw(_("Payment Provider '{0}' is not active").format(self.payment_provider))
             
             # Validate that the provider method exists in the provider's supported methods
             if self.provider_method_id:
                 supported_methods = [method.method_id for method in provider.supported_payment_methods if method.is_active]
                 if self.provider_method_id not in supported_methods:
-                    frappe.throw(f"Method '{self.provider_method_id}' is not supported by provider '{self.payment_provider}'")
+                    frappe.throw(_("Method '{0}' is not supported by provider '{1}'").format(self.provider_method_id, self.payment_provider))
         
         # Ensure only one default payment method per currency
         if self.is_default:

@@ -30,7 +30,7 @@ def mollie_webhook():
         return "OK"
     
     except Exception as e:
-        frappe.log_error(f"Mollie webhook error: {str(e)}")
+        frappe.log_error("Mollie webhook error", str(e))
         return "Error"
 
 
@@ -53,7 +53,7 @@ def process_mollie_payment_update(payment_id):
             create_payment_record(payment)
     
     except Exception as e:
-        frappe.log_error(f"Error processing Mollie payment update: {str(e)}")
+        frappe.log_error("Error processing Mollie payment update", str(e))
 
 
 def find_payment_record(mollie_payment):
@@ -162,7 +162,7 @@ def create_payment_record(mollie_payment):
         frappe.db.commit()
         
     except Exception as e:
-        frappe.log_error(f"Error creating payment record: {str(e)}")
+        frappe.log_error("Error creating payment record", str(e))
 
 
 def handle_successful_payment(payment_record, mollie_payment):
@@ -194,7 +194,7 @@ def handle_successful_payment(payment_record, mollie_payment):
         frappe.logger().info(f"Payment successful: {payment_record.mollie_payment_id}")
     
     except Exception as e:
-        frappe.log_error(f"Error handling successful payment: {str(e)}")
+        frappe.log_error("Error handling successful payment", str(e))
 
 
 def handle_first_payment_success(payment_record, mollie_payment, metadata):
@@ -221,10 +221,10 @@ def handle_first_payment_success(payment_record, mollie_payment, metadata):
             # Send confirmation email
             send_first_payment_confirmation(payment_record, subscription)
         else:
-            frappe.log_error(f"Failed to create subscription after first payment: {result.get('message')}")
+            frappe.log_error("Failed to create subscription after first payment", result.get('message'))
     
     except Exception as e:
-        frappe.log_error(f"Error handling first payment success: {str(e)}")
+        frappe.log_error("Error handling first payment success", str(e))
 
 
 def send_first_payment_confirmation(payment_record, subscription):
@@ -234,20 +234,20 @@ def send_first_payment_confirmation(payment_record, subscription):
         
         frappe.sendmail(
             recipients=[admin.email],
-            subject=f"Subscription Activated - {subscription.plan}",
+            subject=_("Subscription Activated - {0}").format(subscription.plan),
             message=f"""
-            <p>Dear {admin.company_name or admin.name},</p>
-            <p>Thank you for your first payment of €{payment_record.amount}!</p>
-            <p>Your {subscription.plan} subscription has been successfully activated and will renew automatically.</p>
-            <p>Payment ID: {payment_record.mollie_payment_id}</p>
-            <p>Subscription ID: {subscription.name}</p>
-            <p>We appreciate your business!</p>
+            <p>{_("Dear {0}").format(admin.company_name or admin.name)},</p>
+            <p>{_("Thank you for your first payment of €{0}!").format(payment_record.amount)}</p>
+            <p>{_("Your {0} subscription has been successfully activated and will renew automatically.").format(subscription.plan)}</p>
+            <p>{_("Payment ID: {0}").format(payment_record.mollie_payment_id)}</p>
+            <p>{_("Subscription ID: {0}").format(subscription.name)}</p>
+            <p>{_("We appreciate your business!")}</p>
             """,
-            header="Subscription Activated"
+            header=_("Subscription Activated")
         )
     
     except Exception as e:
-        frappe.log_error(f"Error sending first payment confirmation: {str(e)}")
+        frappe.log_error("Error sending first payment confirmation", str(e))
 
 
 def handle_failed_payment(payment_record, mollie_payment):
@@ -267,7 +267,7 @@ def handle_failed_payment(payment_record, mollie_payment):
         frappe.logger().info(f"Payment failed: {payment_record.mollie_payment_id} - Status: {mollie_payment.get('status')}")
     
     except Exception as e:
-        frappe.log_error(f"Error handling failed payment: {str(e)}")
+        frappe.log_error("Error handling failed payment", str(e))
 
 
 def send_payment_confirmation(payment_record, subscription):
@@ -277,18 +277,18 @@ def send_payment_confirmation(payment_record, subscription):
         
         frappe.sendmail(
             recipients=[admin.email],
-            subject=f"Payment Confirmation - {subscription.plan}",
+            subject=_("Payment Confirmation - {0}").format(subscription.plan),
             message=f"""
-            <p>Dear {admin.company_name or admin.name},</p>
-            <p>We have successfully received your payment of €{payment_record.amount} for your {subscription.plan} subscription.</p>
-            <p>Payment ID: {payment_record.mollie_payment_id}</p>
-            <p>Thank you for your business!</p>
+            <p>{_("Dear {0}").format(admin.company_name or admin.name)},</p>
+            <p>{_("We have successfully received your payment of €{0} for your {1} subscription.").format(payment_record.amount, subscription.plan)}</p>
+            <p>{_("Payment ID: {0}").format(payment_record.mollie_payment_id)}</p>
+            <p>{_("Thank you for your business!")}</p>
             """,
-            header="Payment Confirmation"
+            header=_("Payment Confirmation")
         )
     
     except Exception as e:
-        frappe.log_error(f"Error sending payment confirmation: {str(e)}")
+        frappe.log_error("Error sending payment confirmation", str(e))
 
 
 def send_payment_failure_notification(payment_record, subscription):
@@ -298,18 +298,18 @@ def send_payment_failure_notification(payment_record, subscription):
         
         frappe.sendmail(
             recipients=[admin.email],
-            subject=f"Payment Failed - {subscription.plan}",
+            subject=_("Payment Failed - {0}").format(subscription.plan),
             message=f"""
-            <p>Dear {admin.company_name or admin.name},</p>
-            <p>Unfortunately, your payment of €{payment_record.amount} for your {subscription.plan} subscription has failed.</p>
-            <p>Payment ID: {payment_record.mollie_payment_id}</p>
-            <p>Please update your payment method or contact support for assistance.</p>
+            <p>{_("Dear {0}").format(admin.company_name or admin.name)},</p>
+            <p>{_("Unfortunately, your payment of €{0} for your {1} subscription has failed.").format(payment_record.amount, subscription.plan)}</p>
+            <p>{_("Payment ID: {0}").format(payment_record.mollie_payment_id)}</p>
+            <p>{_("Please update your payment method or contact support for assistance.")}</p>
             """,
-            header="Payment Failed"
+            header=_("Payment Failed")
         )
     
     except Exception as e:
-        frappe.log_error(f"Error sending payment failure notification: {str(e)}")
+        frappe.log_error("Error sending payment failure notification", str(e))
 
 
 @frappe.whitelist(allow_guest=True)

@@ -2,6 +2,7 @@
 # For license information, please see license.txt
 
 import frappe
+from frappe import _
 from frappe.model.document import Document
 from frappe.utils import today, add_months, add_days, getdate
 
@@ -91,11 +92,11 @@ class Subscription(Document):
                 self.db_update()
             else:
                 frappe.log_error(f"Failed to setup Mollie recurring payments: {result.get('message')}")
-                frappe.throw(f"Failed to setup recurring payments: {result.get('message')}")
+                frappe.throw(_("Failed to setup recurring payments: {0}").format(result.get('message')))
         
         except Exception as e:
             frappe.log_error(f"Error setting up Mollie recurring payments: {str(e)}")
-            frappe.throw(f"Error setting up recurring payments: {str(e)}")
+            frappe.throw(_("Error setting up recurring payments: {0}").format(str(e)))
     
     def handle_plan_change(self):
         # Get the new plan

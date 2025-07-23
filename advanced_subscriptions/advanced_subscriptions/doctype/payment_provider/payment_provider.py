@@ -2,6 +2,7 @@
 # For license information, please see license.txt
 
 import frappe
+from frappe import _
 from frappe.model.document import Document
 import requests
 import json
@@ -42,13 +43,13 @@ class PaymentProvider(Document):
             # Validate Mollie API key format
             api_key = self.get_api_key()
             if api_key and not (api_key.startswith("test_") or api_key.startswith("live_")):
-                frappe.throw("Mollie API key should start with 'test_' or 'live_'")
+                frappe.throw(_("Mollie API key should start with 'test_' or 'live_'"))
         
         elif self.provider_type == "Stripe":
             # Validate Stripe API key format
             api_key = self.get_api_key()
             if api_key and not (api_key.startswith("sk_test_") or api_key.startswith("sk_live_")):
-                frappe.throw("Stripe API key should start with 'sk_test_' or 'sk_live_'")
+                frappe.throw(_("Stripe API key should start with 'sk_test_' or 'sk_live_'"))
     
     def set_provider_defaults(self):
         """Set default URLs and configurations based on provider type"""
@@ -65,7 +66,7 @@ class PaymentProvider(Document):
     def validate_webhook_url(self):
         """Ensure webhook URL is accessible"""
         if self.webhook_url and not self.webhook_url.startswith(("http://", "https://")):
-            frappe.throw("Webhook URL must start with http:// or https://")
+            frappe.throw(_("Webhook URL must start with http:// or https://"))
     
     def get_api_key(self):
         """Get the appropriate API key based on mode"""

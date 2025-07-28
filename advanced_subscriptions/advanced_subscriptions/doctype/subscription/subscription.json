@@ -79,7 +79,7 @@
    "fieldname": "pay_as_you_go_items",
    "fieldtype": "Table",
    "label": "Pay As You Go Items",
-   "options": "Subscription Pay As You Go Item"
+   "options": "Pay As You Go Item"
   },
   {
    "fieldname": "administration",
@@ -166,7 +166,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-07-23 11:13:45.714825",
+ "modified": "2025-07-23 14:57:19.149211",
  "modified_by": "Administrator",
  "module": "Advanced Subscriptions",
  "name": "Subscription",

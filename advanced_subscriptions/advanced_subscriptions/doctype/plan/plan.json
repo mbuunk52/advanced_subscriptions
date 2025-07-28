@@ -12,7 +12,9 @@
   "periode",
   "is_active",
   "features_section",
-  "features"
+  "features",
+  "sb_payg",
+  "payg_items"
  ],
  "fields": [
   {
@@ -57,11 +59,22 @@
    "fieldtype": "Table",
    "label": "Features",
    "options": "Plan Feature"
+  },
+  {
+   "fieldname": "sb_payg",
+   "fieldtype": "Section Break",
+   "label": "Pay-As-You-Go"
+  },
+  {
+   "fieldname": "payg_items",
+   "fieldtype": "Table",
+   "label": "Pay-As-You-Go items",
+   "options": "Pay As You Go Item"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-07-22 11:55:15.013297",
+ "modified": "2025-07-23 14:59:00.949520",
  "modified_by": "Administrator",
  "module": "Advanced Subscriptions",
  "name": "Plan",

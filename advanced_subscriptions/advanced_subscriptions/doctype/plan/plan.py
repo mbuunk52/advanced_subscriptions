@@ -11,6 +11,7 @@ class Plan(Document):
     from typing import TYPE_CHECKING
 
     if TYPE_CHECKING:
+        from advanced_subscriptions.advanced_subscriptions.doctype.pay_as_you_go_item.pay_as_you_go_item import PayAsYouGoItem
         from advanced_subscriptions.advanced_subscriptions.doctype.plan_feature.plan_feature import PlanFeature
         from frappe.types import DF
 
@@ -18,6 +19,7 @@ class Plan(Document):
         features: DF.Table[PlanFeature]
         is_active: DF.Check
         naam: DF.Data
+        payg_items: DF.Table[PayAsYouGoItem]
         periode: DF.Literal["Month", "Year"]
         prijs: DF.Currency
     # end: auto-generated types

@@ -48,6 +48,17 @@ def create_subscription_with_payment(administration_name, plan_name, payment_met
         if not customer_result["success"]:
             return customer_result
         
+        # Reload admin to get updated mollie_customer_id
+        admin.reload()
+        
+        # Double-check that we now have a valid customer ID
+        if not _is_valid_mollie_customer_id(admin.mollie_customer_id):
+            frappe.log_error(f"Customer creation succeeded but no valid ID found: {admin.mollie_customer_id}", "Customer ID Error")
+            return {
+                "success": False,
+                "message": _("Error setting up payment account. Please try again.")
+            }
+        
         # Step 3: Create subscription record
         subscription = _create_subscription_record(admin, plan, payment_method)
         
@@ -123,6 +134,15 @@ def handle_payment_completion(payment_id):
         
         # Step 3: Get valid mandate from Mollie
         admin = frappe.get_doc("Administration", subscription.administration)
+        
+        # Ensure we have a valid customer ID
+        if not _is_valid_mollie_customer_id(admin.mollie_customer_id):
+            frappe.log_error(f"Invalid customer ID in payment completion: {admin.mollie_customer_id}", "Payment Completion Error")
+            return {
+                "success": False,
+                "message": _("Invalid customer account. Please contact support.")
+            }
+        
         mandates = mollie.get_mandates(admin.mollie_customer_id)
         
         valid_mandate = None
@@ -243,7 +263,51 @@ def get_subscription_status(subscription_name):
         }
 
 
+@frappe.whitelist()
+def debug_customer_info(administration_name):
+    """Debug function to check customer information"""
+    try:
+        admin = frappe.get_doc("Administration", administration_name)
+        
+        info = {
+            "administration_name": admin.name,
+            "company_name": admin.company_name,
+            "email": admin.email,
+            "mollie_customer_id": admin.mollie_customer_id,
+            "is_valid_customer_id": _is_valid_mollie_customer_id(admin.mollie_customer_id)
+        }
+        
+        # Try to fetch customer from Mollie if ID exists
+        if _is_valid_mollie_customer_id(admin.mollie_customer_id):
+            try:
+                flow_manager = SubscriptionFlowManager()
+                mollie = flow_manager.get_mollie_api()
+                customer = mollie.get_customer(admin.mollie_customer_id)
+                info["mollie_customer_exists"] = True
+                info["mollie_customer_email"] = customer.email if hasattr(customer, 'email') else None
+            except Exception as e:
+                info["mollie_customer_exists"] = False
+                info["mollie_error"] = str(e)
+        
+        return {
+            "success": True,
+            "data": info
+        }
+        
+    except Exception as e:
+        frappe.log_error(f"Error debugging customer info: {str(e)}", "Debug Error")
+        return {
+            "success": False,
+            "message": str(e)
+        }
+
+
 # Helper Functions
+
+def _is_valid_mollie_customer_id(customer_id):
+    """Check if customer ID is valid Mollie format"""
+    return customer_id and isinstance(customer_id, str) and customer_id.startswith('cst_') and len(customer_id) > 4
+
 
 def _validate_subscription_inputs(administration_name, plan_name, payment_method_name):
     """Validate all inputs for subscription creation"""
@@ -295,11 +359,23 @@ def _validate_subscription_inputs(administration_name, plan_name, payment_method
 
 def _ensure_mollie_customer(admin, flow_manager):
     """Ensure Mollie customer exists for the administration"""
-    if admin.mollie_customer_id:
-        return {"success": True}
+    # Check if we already have a valid customer ID
+    if _is_valid_mollie_customer_id(admin.mollie_customer_id):
+        # Verify the customer still exists in Mollie
+        try:
+            mollie = flow_manager.get_mollie_api()
+            customer = mollie.get_customer(admin.mollie_customer_id)
+            if customer:
+                frappe.logger().info(f"Using existing valid Mollie customer ID: {admin.mollie_customer_id}")
+                return {"success": True}
+        except Exception as e:
+            frappe.logger().info(f"Existing customer ID {admin.mollie_customer_id} not found in Mollie: {str(e)}")
+            # Continue to create new customer
     
     try:
         mollie = flow_manager.get_mollie_api()
+        
+        frappe.logger().info(f"Creating new Mollie customer for admin: {admin.name} ({admin.email})")
         
         customer_data = mollie.create_customer(
             name=admin.company_name or admin.name,
@@ -312,7 +388,9 @@ def _ensure_mollie_customer(admin, flow_manager):
         
         # Update administration with customer ID
         admin.mollie_customer_id = customer_data.id
-        admin.db_update()
+        admin.save()  # Use save() instead of db_update() to ensure proper saving
+        
+        frappe.logger().info(f"Created Mollie customer with ID: {customer_data.id}")
         
         return {"success": True}
         
@@ -351,6 +429,16 @@ def _create_first_payment(subscription, flow_manager):
         admin = frappe.get_doc("Administration", subscription.administration)
         plan = frappe.get_doc("Plan", subscription.plan)
         
+        # Validate that we have a valid customer ID
+        if not _is_valid_mollie_customer_id(admin.mollie_customer_id):
+            frappe.log_error(f"Invalid customer ID when creating payment: {admin.mollie_customer_id}", "Payment Creation Error")
+            return {
+                "success": False,
+                "message": _("Invalid customer account. Please contact support.")
+            }
+        
+        frappe.logger().info(f"Creating first payment for customer {admin.mollie_customer_id}, subscription {subscription.name}")
+        
         # Create first payment with sequenceType: 'first'
         payment_data = mollie.create_payment(
             amount=plan.prijs,
@@ -378,6 +466,8 @@ def _create_first_payment(subscription, flow_manager):
         if not checkout_url:
             raise Exception("Could not get checkout URL from Mollie")
         
+        frappe.logger().info(f"Created payment {payment_data.id} with checkout URL")
+        
         return {
             "success": True,
             "payment_id": payment_data.id,
@@ -399,12 +489,22 @@ def _create_mollie_subscription(subscription, mandate_id, flow_manager):
         admin = frappe.get_doc("Administration", subscription.administration)
         plan = frappe.get_doc("Plan", subscription.plan)
         
+        # Validate customer ID
+        if not _is_valid_mollie_customer_id(admin.mollie_customer_id):
+            frappe.log_error(f"Invalid customer ID in subscription creation: {admin.mollie_customer_id}", "Subscription Creation Error")
+            return {
+                "success": False,
+                "message": _("Invalid customer account. Please contact support.")
+            }
+        
         # Map plan period to Mollie interval
         interval_mapping = {
             "Month": "1 month",
             "Year": "1 year"
         }
         interval = interval_mapping.get(plan.periode, "1 month")
+        
+        frappe.logger().info(f"Creating Mollie subscription for customer {admin.mollie_customer_id}")
         
         # Create subscription in Mollie
         mollie_subscription = mollie.create_subscription(
@@ -420,6 +520,8 @@ def _create_mollie_subscription(subscription, mandate_id, flow_manager):
                 "administration_id": admin.name
             }
         )
+        
+        frappe.logger().info(f"Created Mollie subscription: {mollie_subscription.id}")
         
         return {
             "success": True,

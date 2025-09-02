@@ -13,7 +13,7 @@ class Subscription(Document):
     from typing import TYPE_CHECKING
 
     if TYPE_CHECKING:
-        from advanced_subscriptions.advanced_subscriptions.doctype.subscription_pay_as_you_go_item.subscription_pay_as_you_go_item import SubscriptionPayAsYouGoItem
+        from advanced_subscriptions.advanced_subscriptions.doctype.pay_as_you_go_item.pay_as_you_go_item import SubscriptionPayAsYouGoItem
         from frappe.types import DF
 
         administration: DF.Link

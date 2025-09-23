@@ -58,7 +58,7 @@ def cancel_subscription(subscription):
     from advanced_subscriptions.api.payment_management import cancel_subscription as new_cancel
     return new_cancel(subscription)
     
-@frappe.whitelist()
+@frappe.whitelist(allow_guest=True)
 def get_plans_with_features():
     """Get all active plans with their features"""
     try:

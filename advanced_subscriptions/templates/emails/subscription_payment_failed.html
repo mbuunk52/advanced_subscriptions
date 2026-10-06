@@ -1,0 +1,16 @@
+{#- Payment failed. Context: plan, amount, status, active_until, manage_url -#}
+{%- from "templates/emails/legalfyx/macros.html" import preheader, card, title, text, small, badge, details, button, reason -%}
+{{ preheader(_("Your subscription continues until {0}. Pay before then and you won't miss anything.").format(active_until) if active_until else _("Pay again to keep your subscription.")) }}
+{% call card() %}
+	{{ badge(_("Payment failed")) }}
+	{{ title(_("Your payment of {0} did not go through").format(amount)) }}
+	{%- if active_until %}
+	{{ text(_("That can happen, for example when the bank refuses the direct debit or the payment was interrupted. Your subscription continues until {0}. Pay before that date and you won't notice a thing.").format(active_until)) }}
+	{%- else %}
+	{{ text(_("That can happen, for example when the bank refuses the direct debit or the payment was interrupted. Pay again to keep using your subscription.")) }}
+	{%- endif %}
+	{{ details([(_("Plan"), plan|e), (_("Amount"), amount), (_("Status"), status)]) }}
+	{{ button(_("Pay again"), manage_url) }}
+	{{ small(_("Is your payment method out of date? Change it in your account under Settings › Subscription.")) }}
+{% endcall %}
+{{ reason(_("You receive this e-mail because your administration has a LegalFyx subscription.")) }}

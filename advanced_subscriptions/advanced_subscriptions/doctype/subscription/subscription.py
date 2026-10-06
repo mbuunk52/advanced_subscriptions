@@ -193,22 +193,10 @@ class Subscription(Document):
             frappe.log_error(f"Error cancelling Mollie subscription on cancel: {str(e)}")
     
     def send_expiry_notification(self):
-        """Send notification about expiring subscription"""
-        try:
-            admin = frappe.get_doc("Administration", self.administration)
-            frappe.sendmail(
-                recipients=[admin.email],
-                subject=f"Subscription Expiring Soon - {self.plan}",
-                message=f"""
-                <p>Dear {admin.company_name or admin.name},</p>
-                <p>Your subscription to {self.plan} will expire on {self.einddatum}.</p>
-                <p>Please ensure your payment method is up to date for automatic renewal.</p>
-                <p>If you have any questions, please contact support.</p>
-                """
-            )
-        except Exception as e:
-            frappe.log_error(f"Error sending expiry notification: {str(e)}")
+        """Once per period (the mail is keyed on the end date), however often the subscription is saved."""
+        from advanced_subscriptions import emails
 
+        emails.subscription_expiring(self)
 
 # Standalone functions for scheduled tasks
 def check_expiring_subscriptions():
@@ -267,16 +255,9 @@ def process_renewals():
             subscription.save()
             
             # Send renewal notification
-            admin = frappe.get_doc("Administration", subscription.administration)
-            frappe.sendmail(
-                recipients=[admin.email],
-                subject=f"Subscription Renewed - {subscription.plan}",
-                message=f"""
-                <p>Dear {admin.company_name or admin.name},</p>
-                <p>Your subscription to the {subscription.plan} plan has been renewed until {subscription.einddatum}.</p>
-                <p>Thank you for your continued business!</p>
-                """
-            )
+            from advanced_subscriptions import emails
+
+            emails.subscription_renewed(subscription)
         else:
             # Handle payment failure
             subscription.payment_failure_count += 1

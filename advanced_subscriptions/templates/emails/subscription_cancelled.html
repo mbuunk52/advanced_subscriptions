@@ -1,0 +1,15 @@
+{#- Subscription cancelled. Context: plan, end, manage_url -#}
+{%- from "templates/emails/legalfyx/macros.html" import preheader, card, title, text, details, button, reason -%}
+{{ preheader(_("You keep access until {0}.").format(end) if end else _("Your subscription has been cancelled.")) }}
+{% call card() %}
+	{{ title(_("Your subscription has been cancelled")) }}
+	{%- if end %}
+	{{ text(_("Your {0} subscription has been cancelled. You keep access until {1}; after that nothing more is charged.").format(plan|e, end)) }}
+	{{ details([(_("Plan"), plan|e), (_("Access until"), end)]) }}
+	{%- else %}
+	{{ text(_("Your {0} subscription has been cancelled. Nothing more is charged.").format(plan|e)) }}
+	{%- endif %}
+	{{ text(_("Changed your mind? You can subscribe again at any time.")) }}
+	{{ button(_("Subscribe again"), manage_url, secondary=True) }}
+{% endcall %}
+{{ reason(_("You receive this e-mail because your administration had a LegalFyx subscription.")) }}

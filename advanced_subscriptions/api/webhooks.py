@@ -232,27 +232,10 @@ def handle_first_payment_success(payment_record, mollie_payment, metadata):
 
 
 def send_first_payment_confirmation(payment_record, subscription):
-    """Send first payment confirmation and subscription activation email"""
-    try:
-        admin = frappe.get_doc("Administration", subscription.administration)
-        
-        frappe.sendmail(
-            recipients=[admin.email],
-            subject=_("Subscription Activated - {0}").format(subscription.plan),
-            message=f"""
-            <p>{_("Dear {0}").format(admin.company_name or admin.name)},</p>
-            <p>{_("Thank you for your first payment of €{0}!").format(payment_record.amount)}</p>
-            <p>{_("Your {0} subscription has been successfully activated and will renew automatically.").format(subscription.plan)}</p>
-            <p>{_("Payment ID: {0}").format(payment_record.mollie_payment_id)}</p>
-            <p>{_("Subscription ID: {0}").format(subscription.name)}</p>
-            <p>{_("We appreciate your business!")}</p>
-            """,
-            header=_("Subscription Activated")
-        )
-    
-    except Exception as e:
-        frappe.log_error("Error sending first payment confirmation", str(e))
+    """First payment done: the subscription is active (one mail, also when another path sends it)"""
+    from advanced_subscriptions import emails
 
+    emails.subscription_activated(subscription)
 
 def handle_failed_payment(payment_record, mollie_payment):
     """Handle failed payment"""
@@ -275,46 +258,16 @@ def handle_failed_payment(payment_record, mollie_payment):
 
 
 def send_payment_confirmation(payment_record, subscription):
-    """Send payment confirmation email"""
-    try:
-        admin = frappe.get_doc("Administration", subscription.administration)
-        
-        frappe.sendmail(
-            recipients=[admin.email],
-            subject=_("Payment Confirmation - {0}").format(subscription.plan),
-            message=f"""
-            <p>{_("Dear {0}").format(admin.company_name or admin.name)},</p>
-            <p>{_("We have successfully received your payment of €{0} for your {1} subscription.").format(payment_record.amount, subscription.plan)}</p>
-            <p>{_("Payment ID: {0}").format(payment_record.mollie_payment_id)}</p>
-            <p>{_("Thank you for your business!")}</p>
-            """,
-            header=_("Payment Confirmation")
-        )
-    
-    except Exception as e:
-        frappe.log_error("Error sending payment confirmation", str(e))
+    """Payment received (the Payment Record hook may already have sent it; then this does nothing)"""
+    from advanced_subscriptions import emails
 
+    emails.payment_received(payment_record)
 
 def send_payment_failure_notification(payment_record, subscription):
-    """Send payment failure notification"""
-    try:
-        admin = frappe.get_doc("Administration", subscription.administration)
-        
-        frappe.sendmail(
-            recipients=[admin.email],
-            subject=_("Payment Failed - {0}").format(subscription.plan),
-            message=f"""
-            <p>{_("Dear {0}").format(admin.company_name or admin.name)},</p>
-            <p>{_("Unfortunately, your payment of €{0} for your {1} subscription has failed.").format(payment_record.amount, subscription.plan)}</p>
-            <p>{_("Payment ID: {0}").format(payment_record.mollie_payment_id)}</p>
-            <p>{_("Please update your payment method or contact support for assistance.")}</p>
-            """,
-            header=_("Payment Failed")
-        )
-    
-    except Exception as e:
-        frappe.log_error("Error sending payment failure notification", str(e))
+    """Payment failed (sent once per payment)"""
+    from advanced_subscriptions import emails
 
+    emails.payment_failed(payment_record)
 
 @frappe.whitelist(allow_guest=True)
 def stripe_webhook():

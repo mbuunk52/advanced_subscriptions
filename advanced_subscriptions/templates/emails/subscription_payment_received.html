@@ -1,0 +1,15 @@
+{#- Payment received. Context: plan, amount, method, paid_on, reference, manage_url -#}
+{%- from "templates/emails/legalfyx/macros.html" import preheader, card, title, text, small, badge, details, button, reason -%}
+{%- set rows = [(_("Plan"), plan|e), (_("Amount"), amount)] -%}
+{%- if method %}{% set rows = rows + [(_("Paid with"), method|e)] %}{% endif -%}
+{%- if paid_on %}{% set rows = rows + [(_("Date"), paid_on)] %}{% endif -%}
+{{ preheader(_("Thank you. We have received {0}.").format(amount)) }}
+{% call card() %}
+	{{ badge(_("Paid"), "mint") }}
+	{{ title(_("Thank you, your payment has arrived")) }}
+	{{ text(_("We have received your payment for the {0} plan.").format(plan|e)) }}
+	{{ details(rows + [(_("Payment reference"), reference|e, "mono")]) }}
+	{{ button(_("View subscription"), manage_url, secondary=True) }}
+	{{ small(_("You can change or cancel at any time in your account under Settings › Subscription.")) }}
+{% endcall %}
+{{ reason(_("You receive this e-mail because your administration has a LegalFyx subscription.")) }}

@@ -1,0 +1,23 @@
+{#- Subscription ends soon. Context: plan, price, end, days, auto_renew, manage_url -#}
+{%- from "templates/emails/legalfyx/macros.html" import preheader, card, title, text, details, button_with_link, button, reason -%}
+{%- set rows = [(_("Plan"), plan|e), (_("Ends on"), end)] -%}
+{%- if price %}{% set rows = rows + [(_("Renewal"), price)] %}{% endif -%}
+{%- if auto_renew %}
+{{ preheader(_("Your subscription renews automatically on {0}.").format(end)) }}
+{%- else %}
+{{ preheader(_("Renew in time and everything keeps working as usual.")) }}
+{%- endif %}
+{% call card() %}
+	{%- if auto_renew %}
+	{{ title(_("Your subscription renews on {0}").format(end)) }}
+	{{ text(_("Your {0} subscription renews automatically. Check that your payment method is still correct, then nothing changes for you.").format(plan|e)) }}
+	{{ details(rows) }}
+	{{ button(_("Check payment method"), manage_url, secondary=True) }}
+	{%- else %}
+	{{ title(_("Your {0} subscription ends in {1} days").format(plan|e, days) if days > 0 else _("Your {0} subscription ends today").format(plan|e)) }}
+	{{ text(_("On {0} your subscription ends. Renew it, or choose another plan if that fits better.").format(end)) }}
+	{{ details(rows) }}
+	{{ button_with_link(_("Renew subscription"), manage_url, _("Choose another plan"), "/prijzen") }}
+	{%- endif %}
+{% endcall %}
+{{ reason(_("You receive this e-mail because your administration has a LegalFyx subscription.")) }}

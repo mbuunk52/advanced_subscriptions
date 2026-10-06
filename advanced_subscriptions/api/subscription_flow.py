@@ -562,33 +562,9 @@ def _create_payment_record(payment, subscription):
 
 def _send_activation_email(subscription):
     """Send subscription activation email"""
-    try:
-        admin = frappe.get_doc("Administration", subscription.administration)
-        plan = frappe.get_doc("Plan", subscription.plan)
-        
-        frappe.sendmail(
-            recipients=[admin.email],
-            subject=_("Subscription Activated - {0}").format(plan.naam),
-            message=f"""
-            <h3>{_("Subscription Successfully Activated!")}</h3>
-            <p>{_("Dear {0},").format(admin.company_name or admin.name)}</p>
-            <p>{_("Your {0} subscription has been successfully activated.").format(plan.naam)}</p>
-            <p><strong>{_("Subscription Details:")}</strong></p>
-            <ul>
-                <li>{_("Plan: {0}").format(plan.naam)}</li>
-                <li>{_("Price: €{0} per {1}").format(plan.prijs, plan.periode.lower())}</li>
-                <li>{_("Start Date: {0}").format(subscription.startdatum)}</li>
-                <li>{_("Next Payment: {0}").format(subscription.einddatum)}</li>
-            </ul>
-            <p>{_("Your subscription will renew automatically. You can manage your subscription in your account settings.")}</p>
-            <p>{_("Thank you for choosing our services!")}</p>
-            """,
-            header=_("Subscription Activated")
-        )
-        
-    except Exception as e:
-        frappe.log_error(f"Error sending activation email: {str(e)}", "Activation Email")
+    from advanced_subscriptions import emails
 
+    emails.subscription_activated(subscription)
 
 @frappe.whitelist(allow_guest=True)
 def webhook_handler():

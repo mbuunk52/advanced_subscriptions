@@ -100,64 +100,6 @@ def get_available_payment_methods(currency="EUR", amount=None):
 
 
 @frappe.whitelist()
-def cancel_subscription(subscription_name, reason=None):
-    """Cancel a subscription - simplified version"""
-    try:
-        subscription = frappe.get_doc("Subscription", subscription_name)
-        
-        if subscription.status == "Cancelled":
-            return {
-                "success": False,
-                "message": _("Subscription is already cancelled")
-            }
-        
-        # Cancel in Mollie if exists
-        if subscription.mollie_subscription_id:
-            try:
-                from advanced_subscriptions.integrations.mollie_api import MollieAPI
-                mollie = MollieAPI()
-                mollie.cancel_subscription(subscription.mollie_customer_id, subscription.mollie_subscription_id)
-            except Exception as e:
-                frappe.log_error(f"Error cancelling Mollie subscription: {str(e)}")
-                # Continue with cancellation even if Mollie fails
-        
-        # Update subscription status
-        subscription.status = "Cancelled"
-        if reason:
-            subscription.cancellation_reason = reason
-        
-        subscription.save()
-        
-        # Send cancellation notification
-        try:
-            admin = frappe.get_doc("Administration", subscription.administration)
-            frappe.sendmail(
-                recipients=[admin.email],
-                subject=f"Subscription Cancelled - {subscription.plan}",
-                message=f"""
-                <p>Dear {admin.company_name or admin.name},</p>
-                <p>Your subscription to {subscription.plan} has been cancelled.</p>
-                <p>Your subscription will remain active until {subscription.einddatum}.</p>
-                <p>Thank you for using our services.</p>
-                """
-            )
-        except Exception as e:
-            frappe.log_error(f"Error sending cancellation email: {str(e)}")
-        
-        return {
-            "success": True,
-            "message": _("Subscription cancelled successfully")
-        }
-    
-    except Exception as e:
-        frappe.log_error(f"Error cancelling subscription: {str(e)}")
-        return {
-            "success": False,
-            "message": str(e)
-        }
-
-
-@frappe.whitelist()
 def get_available_payment_methods(currency="EUR", amount=None):
     """Get available payment methods for a currency and amount"""
     try:
@@ -217,17 +159,9 @@ def cancel_subscription(subscription_name, reason=None):
         subscription.save()
         
         # Send cancellation notification
-        admin = frappe.get_doc("Administration", subscription.administration)
-        frappe.sendmail(
-            recipients=[admin.email],
-            subject=f"Subscription Cancelled - {subscription.plan}",
-            message=f"""
-            <p>Dear {admin.company_name or admin.name},</p>
-            <p>Your subscription to {subscription.plan} has been cancelled.</p>
-            <p>Your subscription will remain active until {subscription.einddatum}.</p>
-            <p>Thank you for using our services.</p>
-            """
-        )
+        from advanced_subscriptions import emails
+
+        emails.subscription_cancelled(subscription)
         
         return {
             "success": True,

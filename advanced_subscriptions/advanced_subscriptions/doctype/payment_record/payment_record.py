@@ -57,31 +57,11 @@ class PaymentRecord(Document):
             self.send_payment_failure_notification()
     
     def send_payment_success_notification(self):
-        """Send payment success notification"""
-        if self.administration:
-            admin = frappe.get_doc("Administration", self.administration)
-            frappe.sendmail(
-                recipients=[admin.email],
-                subject=f"Payment Confirmation - €{self.amount}",
-                message=f"""
-                <p>Dear {admin.company_name or admin.name},</p>
-                <p>Your payment of €{self.amount} has been successfully processed.</p>
-                <p>Payment ID: {self.name}</p>
-                <p>Thank you for your business!</p>
-                """
-            )
-    
+        from advanced_subscriptions import emails
+
+        emails.payment_received(self)
+
     def send_payment_failure_notification(self):
-        """Send payment failure notification"""
-        if self.administration:
-            admin = frappe.get_doc("Administration", self.administration)
-            frappe.sendmail(
-                recipients=[admin.email],
-                subject=f"Payment Failed - €{self.amount}",
-                message=f"""
-                <p>Dear {admin.company_name or admin.name},</p>
-                <p>Unfortunately, your payment of €{self.amount} has failed.</p>
-                <p>Payment ID: {self.name}</p>
-                <p>Please try again or contact support for assistance.</p>
-                """
-            )
+        from advanced_subscriptions import emails
+
+        emails.payment_failed(self)

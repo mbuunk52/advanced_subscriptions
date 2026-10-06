@@ -1,0 +1,14 @@
+{#- Subscription renewed. Context: plan, price, end, manage_url -#}
+{%- from "templates/emails/legalfyx/macros.html" import preheader, card, title, text, small, badge, details, button, reason -%}
+{%- set rows = [(_("Plan"), plan|e), (_("Runs until"), end)] -%}
+{%- if price %}{% set rows = rows + [(_("Price"), price)] %}{% endif -%}
+{{ preheader(_("Your {0} subscription runs until {1}.").format(plan|e, end)) }}
+{% call card() %}
+	{{ badge(_("Renewed"), "mint") }}
+	{{ title(_("Your subscription has been renewed")) }}
+	{{ text(_("Thank you for staying with us. Your {0} subscription runs until {1}.").format(plan|e, end)) }}
+	{{ details(rows) }}
+	{{ button(_("View subscription"), manage_url, secondary=True) }}
+	{{ small(_("You can change or cancel at any time in your account under Settings › Subscription.")) }}
+{% endcall %}
+{{ reason(_("You receive this e-mail because your administration has a LegalFyx subscription.")) }}

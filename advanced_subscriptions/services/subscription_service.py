@@ -415,40 +415,15 @@ class SubscriptionService:
     
     def _send_activation_email(self, subscription, admin):
         """Send subscription activation email"""
-        try:
-            plan = frappe.get_doc("Plan", subscription.plan)
-            
-            frappe.sendmail(
-                recipients=[admin.email],
-                subject=_("Subscription Activated - {0}").format(plan.naam),
-                message=f"""
-                <p>{_("Dear {0}").format(admin.company_name or admin.name)},</p>
-                <p>{_("Your {0} subscription has been successfully activated!").format(plan.naam)}</p>
-                <p>{_("Subscription will renew automatically on {0}").format(subscription.einddatum)}</p>
-                <p>{_("Thank you for your business!")}</p>
-                """
-            )
-        except Exception as e:
-            frappe.log_error(f"Error sending activation email: {str(e)}")
-    
+        from advanced_subscriptions import emails
+
+        emails.subscription_activated(subscription)
+
     def _send_cancellation_email(self, subscription, admin):
         """Send subscription cancellation email"""
-        try:
-            plan = frappe.get_doc("Plan", subscription.plan)
-            
-            frappe.sendmail(
-                recipients=[admin.email],
-                subject=_("Subscription Cancelled - {0}").format(plan.naam),
-                message=f"""
-                <p>{_("Dear {0}").format(admin.company_name or admin.name)},</p>
-                <p>{_("Your {0} subscription has been cancelled.").format(plan.naam)}</p>
-                <p>{_("Your subscription will remain active until {0}").format(subscription.einddatum)}</p>
-                <p>{_("Thank you for using our services.")}</p>
-                """
-            )
-        except Exception as e:
-            frappe.log_error(f"Error sending cancellation email: {str(e)}")
+        from advanced_subscriptions import emails
 
+        emails.subscription_cancelled(subscription)
 
 # Convenience functions for API endpoints
 @frappe.whitelist()

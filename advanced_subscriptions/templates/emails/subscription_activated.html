@@ -1,0 +1,18 @@
+{#- Subscription active. Context: plan, price, start, next_payment, auto_renew, manage_url -#}
+{%- from "templates/emails/legalfyx/macros.html" import preheader, card, title, text, small, badge, details, button, reason -%}
+{%- set rows = [(_("Plan"), plan|e)] -%}
+{%- if price %}{% set rows = rows + [(_("Price"), price)] %}{% endif -%}
+{%- if start %}{% set rows = rows + [(_("Start date"), start)] %}{% endif -%}
+{%- if next_payment %}{% set rows = rows + [(_("Next payment") if auto_renew else _("Runs until"), next_payment)] %}{% endif -%}
+{{ preheader(_("Everything is ready. You can get started right away.")) }}
+{% call card() %}
+	{{ badge(_("Active"), "mint") }}
+	{{ title(_("Your {0} subscription is active").format(plan|e)) }}
+	{{ text(_("Welcome. Everything in your plan is available right away.")) }}
+	{{ details(rows) }}
+	{{ button(_("Go to LegalFyx"), "/tlp/dashboard") }}
+	{%- if auto_renew %}
+	{{ small(_("The subscription renews automatically. You can change or cancel at any time in your account under Settings › Subscription.")) }}
+	{%- endif %}
+{% endcall %}
+{{ reason(_("You receive this e-mail because your administration has a LegalFyx subscription.")) }}

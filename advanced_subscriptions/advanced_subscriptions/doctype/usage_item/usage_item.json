@@ -55,7 +55,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-07-22 11:55:43.101901",
+ "modified": "2026-10-16 11:10:21.455236",
  "modified_by": "Administrator",
  "module": "Advanced Subscriptions",
  "name": "Usage Item",
@@ -77,6 +77,17 @@
   {
    "read": 1,
    "role": "All"
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "LegalFyx Finance",
+   "share": 1,
+   "write": 1
   }
  ],
  "row_format": "Dynamic",

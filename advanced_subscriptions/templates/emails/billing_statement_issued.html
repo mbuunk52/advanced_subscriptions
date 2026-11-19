@@ -1,0 +1,19 @@
+{#- Statement issued. Context: amount, net, vat, lines, collect_on, has_mandate, pay_url, manage_url -#}
+{%- from "templates/emails/legalfyx/macros.html" import preheader, card, title, text, small, badge, details, button, reason -%}
+{{ preheader(_("We collect {0} on {1}.").format(amount, collect_on) if has_mandate else _("Please pay {0}.").format(amount)) }}
+{% call card() %}
+	{{ badge(_("Statement")) }}
+	{{ title(_("Your statement of {0}").format(amount)) }}
+	{%- if has_mandate %}
+	{{ text(_("We collect this amount from your account on {0}. You don't need to do anything.").format(collect_on)) }}
+	{%- else %}
+	{{ text(_("There is no payment method on file for your administration, so we cannot collect this amount. Please pay it with the button below.")) }}
+	{%- endif %}
+	{{ details(lines + [(_("Excluding VAT"), net), (_("VAT"), vat), (_("Total"), amount)]) }}
+	{%- if has_mandate %}
+	{{ button(_("View your statements"), manage_url) }}
+	{%- else %}
+	{{ button(_("Pay now"), pay_url or manage_url) }}
+	{%- endif %}
+{% endcall %}
+{{ reason(_("You receive this e-mail because your administration has a LegalFyx subscription.")) }}

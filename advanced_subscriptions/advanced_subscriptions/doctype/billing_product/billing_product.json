@@ -1,0 +1,124 @@
+{
+ "actions": [],
+ "creation": "2026-11-19 14:00:00",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "code",
+  "title",
+  "unit",
+  "is_active",
+  "c1",
+  "price_individual",
+  "price_business",
+  "vat_rate",
+  "s1",
+  "description"
+ ],
+ "fields": [
+  {
+   "fieldname": "code",
+   "fieldtype": "Data",
+   "label": "Code",
+   "reqd": 1,
+   "unique": 1,
+   "description": "Fixed key that the app uses, for example letter.post. Do not change it once it is in use."
+  },
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "label": "Name",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "unit",
+   "fieldtype": "Data",
+   "label": "Unit",
+   "description": "Shown after the price, for example: letter, analysis."
+  },
+  {
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Active",
+   "default": "1",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "c1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "price_individual",
+   "fieldtype": "Currency",
+   "label": "Price for individuals (incl. VAT)",
+   "in_list_view": 1,
+   "description": "Used when the plan of the administration sets no rate for this product."
+  },
+  {
+   "fieldname": "price_business",
+   "fieldtype": "Currency",
+   "label": "Price for businesses (excl. VAT)",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "vat_rate",
+   "fieldtype": "Percent",
+   "label": "VAT rate",
+   "default": "21"
+  },
+  {
+   "fieldname": "s1",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  }
+ ],
+ "links": [],
+ "modified": "2026-11-19 14:00:00",
+ "modified_by": "Administrator",
+ "module": "Advanced Subscriptions",
+ "name": "Billing Product",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1
+  },
+  {
+   "role": "LegalFyx Finance",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1
+  },
+  {
+   "role": "All",
+   "read": 1,
+   "select": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "autoname": "field:code",
+ "naming_rule": "By fieldname",
+ "title_field": "title",
+ "track_changes": 1
+}

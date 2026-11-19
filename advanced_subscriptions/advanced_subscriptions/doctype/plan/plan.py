@@ -25,6 +25,11 @@ class Plan(Document):
     # end: auto-generated types
 
     def validate(self):
-        # Ensure at least one feature is added
         if not self.features:
-            frappe.throw("At least one feature must be added to the plan.")
+            frappe.throw(frappe._("At least one feature must be added to the plan."))
+        products = [row.product for row in self.usage_rates]
+        if len(products) != len(set(products)):
+            frappe.throw(frappe._("A product can have only one usage rate per plan."))
+        for row in self.usage_rates:
+            if (row.included or 0) < 0 or (row.price or 0) < 0:
+                frappe.throw(frappe._("Included numbers and prices cannot be negative."))

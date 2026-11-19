@@ -14,7 +14,7 @@ from frappe.utils import format_date, getdate
 
 SENT_KEY_TTL = 60 * 60 * 24 * 40  # longer than a billing period, shorter than forever
 SUBSCRIPTION_URL = "/tlp/instellingen/subscription"
-FAILED_STATUS = {"Failed": "Failed", "Cancelled": "Cancelled", "Expired": "Expired"}
+FAILED_STATUS = {"Failed": "Failed", "Cancelled": "Cancelled", "Expired": "Expired", "Charged Back": "Charged back"}
 
 
 def payment_received(payment_record) -> None:
@@ -55,7 +55,7 @@ def subscription_activated(subscription) -> None:
 		_("Your {0} subscription is active").format(plan.naam),
 		"subscription_activated",
 		plan=plan.naam,
-		price=_price(plan),
+		price=_price(plan, subscription),
 		start=format_date(subscription.startdatum) if subscription.startdatum else None,
 		next_payment=format_date(subscription.next_payment_date or subscription.einddatum)
 		if (subscription.next_payment_date or subscription.einddatum)
@@ -72,7 +72,7 @@ def subscription_expiring(subscription) -> None:
 		_("Your subscription ends on {0}").format(format_date(subscription.einddatum)),
 		"subscription_expiring",
 		plan=plan.naam,
-		price=_price(plan),
+		price=_price(plan, subscription),
 		end=format_date(subscription.einddatum),
 		days=(getdate(subscription.einddatum) - getdate()).days,
 		auto_renew=subscription.auto_renew,
@@ -87,7 +87,7 @@ def subscription_renewed(subscription) -> None:
 		_("Your subscription has been renewed until {0}").format(format_date(subscription.einddatum)),
 		"subscription_renewed",
 		plan=plan.naam,
-		price=_price(plan),
+		price=_price(plan, subscription),
 		end=format_date(subscription.einddatum),
 	)
 
@@ -101,6 +101,44 @@ def subscription_cancelled(subscription) -> None:
 		"subscription_cancelled",
 		plan=plan.naam,
 		end=format_date(subscription.einddatum) if subscription.einddatum else None,
+	)
+
+
+def statement_issued(statement, has_mandate: bool) -> None:
+	"""The announcement of a collection, or the request to pay when there is no mandate."""
+	_send(
+		f"statement-issued:{statement.name}:{int(has_mandate)}",
+		statement.administration,
+		_("Your LegalFyx statement of {0}").format(euro(statement.total)),
+		"billing_statement_issued",
+		statement=statement,
+		amount=euro(statement.total),
+		net=euro(statement.net_total),
+		vat=euro(statement.vat_total),
+		lines=[(row.description, euro(row.amount)) for row in statement.lines],
+		collect_on=format_date(statement.collect_on) if statement.collect_on else None,
+		has_mandate=has_mandate,
+		pay_url=statement.checkout_url,
+	)
+
+
+def arrears(administration: str, status: str, amount) -> None:
+	"""One mail per step of the arrears ladder."""
+	subjects = {
+		"Reminded": _("Reminder: {0} is still open"),
+		"Restricted": _("Paid functions are paused: {0} is still open"),
+		"Read Only": _("Your account is read-only: {0} is still open"),
+		"Collection": _("Your arrears of {0} are handed over for collection"),
+	}
+	if status not in subjects:
+		return
+	_send(
+		f"arrears:{administration}:{status}:{getdate().strftime('%Y-%m')}",
+		administration,
+		subjects[status].format(euro(amount)),
+		"billing_arrears",
+		status=status,
+		amount=euro(amount),
 	)
 
 
@@ -152,11 +190,12 @@ def _plan_name(plan: str | None) -> str:
 	return _plan(plan).naam or plan or ""
 
 
-def _price(plan) -> str | None:
-	if not plan.prijs:
+def _price(plan, subscription=None) -> str | None:
+	yearly = subscription is not None and subscription.get("billing_period") == "Year"
+	amount = plan.get("yearly_price") if yearly else plan.prijs
+	if not amount:
 		return None
-	period = {"Month": _("per month"), "Year": _("per year")}.get(plan.periode, "")
-	return f"{euro(plan.prijs)} {period}".strip()
+	return f"{euro(amount)} {_('per year') if yearly else _('per month')}"
 
 
 def _end_date(subscription: str | None) -> str | None:

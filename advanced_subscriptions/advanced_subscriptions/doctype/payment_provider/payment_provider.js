@@ -21,7 +21,7 @@ frappe.ui.form.on("Payment Provider", {
             
             switch(frm.doc.provider_type) {
                 case "Mollie":
-                    webhook_path = "/api/method/advanced_subscriptions.api.webhooks.mollie_webhook";
+                    webhook_path = "/api/method/advanced_subscriptions.billing.api.mollie_webhook";
                     break;
                 case "Stripe":
                     webhook_path = "/api/method/advanced_subscriptions.api.webhooks.stripe_webhook";
@@ -53,7 +53,7 @@ frappe.ui.form.on("Payment Provider", {
             // Set webhook URL
             let base_url = window.location.protocol + "//" + window.location.host;
             let webhook_endpoints = {
-                "Mollie": "/api/method/advanced_subscriptions.api.webhooks.mollie_webhook",
+                "Mollie": "/api/method/advanced_subscriptions.billing.api.mollie_webhook",
                 "Stripe": "/api/method/advanced_subscriptions.api.webhooks.stripe_webhook",
                 "PayPal": "/api/method/advanced_subscriptions.api.webhooks.paypal_webhook"
             };

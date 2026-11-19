@@ -9,6 +9,9 @@
   "basics_section",
   "administration",
   "plan",
+  "billing_period",
+  "pending_plan",
+  "pending_period",
   "status",
   "column_break_4",
   "startdatum",
@@ -162,11 +165,31 @@
    "fieldtype": "Link",
    "label": "Billing address",
    "options": "Address"
+  },
+  {
+   "fieldname": "pending_plan",
+   "fieldtype": "Link",
+   "label": "Plan from the next period",
+   "options": "Plan",
+   "description": "A downgrade takes effect when the current period ends."
+  },
+  {
+   "fieldname": "billing_period",
+   "fieldtype": "Select",
+   "label": "Paid per",
+   "options": "Month\nYear",
+   "default": "Month"
+  },
+  {
+   "fieldname": "pending_period",
+   "fieldtype": "Select",
+   "label": "Paid per, from the next period",
+   "options": "\nMonth\nYear"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-10-16 11:10:21.455236",
+ "modified": "2026-11-19 14:00:00",
  "modified_by": "Administrator",
  "module": "Advanced Subscriptions",
  "name": "Subscription",

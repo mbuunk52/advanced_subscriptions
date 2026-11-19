@@ -1,0 +1,19 @@
+{#- Arrears step. Context: status (Reminded, Restricted, Read Only, Collection), amount, manage_url -#}
+{%- from "templates/emails/legalfyx/macros.html" import preheader, card, title, text, small, badge, details, button, reason -%}
+{{ preheader(_("{0} is still open. Pay it to keep working without limits.").format(amount)) }}
+{% call card() %}
+	{{ badge(_("Payment overdue")) }}
+	{{ title(_("{0} is still open").format(amount)) }}
+	{%- if status == "Reminded" %}
+	{{ text(_("We have not received your payment yet. Pay within a week to keep using everything.")) }}
+	{%- elif status == "Restricted" %}
+	{{ text(_("Because the amount is still open, functions that cost money are paused: purchases, usage and new assignments. Everything else keeps working.")) }}
+	{%- elif status == "Read Only" %}
+	{{ text(_("Because the amount is still open, your account is now read-only. You can still open and export everything, but not create, change or send anything.")) }}
+	{%- else %}
+	{{ text(_("The amount has been open for a long time. We are handing the claim over for collection; interest and collection costs are added.")) }}
+	{%- endif %}
+	{{ text(_("Once the full amount is paid, all restrictions end immediately.")) }}
+	{{ button(_("Pay now"), manage_url) }}
+{% endcall %}
+{{ reason(_("You receive this e-mail because your administration has a LegalFyx subscription.")) }}

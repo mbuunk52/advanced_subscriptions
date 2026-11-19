@@ -25,7 +25,7 @@ class PaymentRecord(Document):
         mollie_payment_id: DF.Data | None
         payment_method: DF.Data | None
         plan: DF.Link | None
-        status: DF.Literal["Pending", "Paid", "Failed", "Cancelled", "Expired", "Authorized", "Unknown"]
+        status: DF.Literal["Open", "Pending", "Paid", "Failed", "Cancelled", "Expired", "Authorized", "Charged Back", "Unknown"]
         subscription: DF.Link | None
         webhook_logs: DF.LongText | None
     # end: auto-generated types
@@ -53,7 +53,7 @@ class PaymentRecord(Document):
         """Send notification when payment status changes"""
         if self.status == "Paid":
             self.send_payment_success_notification()
-        elif self.status in ["Failed", "Cancelled", "Expired"]:
+        elif self.status in ["Failed", "Expired", "Charged Back"]:
             self.send_payment_failure_notification()
     
     def send_payment_success_notification(self):

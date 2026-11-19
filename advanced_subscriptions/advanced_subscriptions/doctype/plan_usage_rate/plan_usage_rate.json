@@ -1,0 +1,68 @@
+{
+ "actions": [],
+ "creation": "2026-11-19 14:00:00",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "product",
+  "included",
+  "price",
+  "c1",
+  "included_yearly",
+  "price_yearly"
+ ],
+ "fields": [
+  {
+   "fieldname": "product",
+   "fieldtype": "Link",
+   "label": "Product",
+   "options": "Billing Product",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "included",
+   "fieldtype": "Int",
+   "label": "Included per month",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "price",
+   "fieldtype": "Currency",
+   "label": "Price per extra item",
+   "in_list_view": 1,
+   "description": "In the price basis of the plan: incl. VAT for individuals, excl. VAT for businesses."
+  },
+  {
+   "fieldname": "c1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "included_yearly",
+   "fieldtype": "Int",
+   "label": "Included per month, yearly payment",
+   "in_list_view": 1,
+   "description": "Leave 0 to use the monthly number."
+  },
+  {
+   "fieldname": "price_yearly",
+   "fieldtype": "Currency",
+   "label": "Price per extra item, yearly payment",
+   "in_list_view": 1,
+   "description": "Leave 0 to use the monthly price."
+  }
+ ],
+ "links": [],
+ "modified": "2026-11-19 14:00:00",
+ "modified_by": "Administrator",
+ "module": "Advanced Subscriptions",
+ "name": "Plan Usage Rate",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "istable": 1,
+ "editable_grid": 1
+}

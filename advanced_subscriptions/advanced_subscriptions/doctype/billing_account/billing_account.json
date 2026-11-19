@@ -1,0 +1,115 @@
+{
+ "actions": [],
+ "creation": "2026-11-19 12:00:00",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "administration",
+  "mollie_customer_id",
+  "c1",
+  "billing_status",
+  "overdue_since",
+  "open_amount",
+  "exempt_section",
+  "exempt_until",
+  "exempt_reason"
+ ],
+ "fields": [
+  {
+   "fieldname": "administration",
+   "fieldtype": "Link",
+   "label": "Administration",
+   "options": "Administration",
+   "reqd": 1,
+   "unique": 1,
+   "in_list_view": 1,
+   "set_only_once": 1
+  },
+  {
+   "fieldname": "mollie_customer_id",
+   "fieldtype": "Data",
+   "label": "Mollie customer",
+   "read_only": 1
+  },
+  {
+   "fieldname": "c1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "billing_status",
+   "fieldtype": "Select",
+   "label": "Billing status",
+   "options": "Current\nPast Due\nReminded\nRestricted\nRead Only\nCollection",
+   "default": "Current",
+   "read_only": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "overdue_since",
+   "fieldtype": "Date",
+   "label": "Overdue since",
+   "read_only": 1
+  },
+  {
+   "fieldname": "open_amount",
+   "fieldtype": "Currency",
+   "label": "Open amount",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "exempt_section",
+   "fieldtype": "Section Break",
+   "label": "Exemption"
+  },
+  {
+   "fieldname": "exempt_until",
+   "fieldtype": "Date",
+   "label": "Exempt from restrictions until"
+  },
+  {
+   "fieldname": "exempt_reason",
+   "fieldtype": "Small Text",
+   "label": "Reason",
+   "mandatory_depends_on": "exempt_until"
+  }
+ ],
+ "links": [],
+ "modified": "2026-11-19 12:00:00",
+ "modified_by": "Administrator",
+ "module": "Advanced Subscriptions",
+ "name": "Billing Account",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1
+  },
+  {
+   "role": "LegalFyx Finance",
+   "read": 1,
+   "write": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "autoname": "field:administration",
+ "naming_rule": "By fieldname",
+ "track_changes": 1
+}

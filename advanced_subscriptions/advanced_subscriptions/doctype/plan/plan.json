@@ -7,14 +7,18 @@
  "engine": "InnoDB",
  "field_order": [
   "naam",
+  "customer_type",
   "beschrijving",
   "prijs",
+  "yearly_price",
   "periode",
   "is_active",
   "features_section",
   "features",
   "sb_payg",
-  "payg_items"
+  "payg_items",
+  "usage_section",
+  "usage_rates"
  ],
  "fields": [
   {
@@ -33,15 +37,17 @@
   {
    "fieldname": "prijs",
    "fieldtype": "Currency",
-   "label": "Prijs",
-   "reqd": 1
+   "label": "Price per month",
+   "reqd": 1,
+   "description": "Incl. VAT for individuals, excl. VAT for businesses."
   },
   {
    "fieldname": "periode",
    "fieldtype": "Select",
    "label": "Periode",
    "options": "Month\nYear",
-   "reqd": 1
+   "reqd": 0,
+   "hidden": 1
   },
   {
    "default": "1",
@@ -69,12 +75,42 @@
    "fieldname": "payg_items",
    "fieldtype": "Table",
    "label": "Pay-As-You-Go items",
-   "options": "Pay As You Go Item"
+   "options": "Pay As You Go Item",
+   "hidden": 1
+  },
+  {
+   "fieldname": "yearly_price",
+   "fieldtype": "Currency",
+   "label": "Price per year",
+   "description": "Leave 0 when the plan cannot be paid per year. Set it below twelve months to give a discount."
+  },
+  {
+   "fieldname": "customer_type",
+   "fieldtype": "Select",
+   "label": "For",
+   "options": "Business\nIndividual",
+   "default": "Business",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "description": "Individuals see prices including VAT, businesses excluding VAT."
+  },
+  {
+   "fieldname": "usage_section",
+   "fieldtype": "Section Break",
+   "label": "Usage"
+  },
+  {
+   "fieldname": "usage_rates",
+   "fieldtype": "Table",
+   "label": "Included usage and rates",
+   "options": "Plan Usage Rate",
+   "description": "What the plan includes per month and what an extra item costs. A product without a row here costs its standard price."
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-10-16 11:10:21.455236",
+ "modified": "2026-11-19 14:00:00",
  "modified_by": "Administrator",
  "module": "Advanced Subscriptions",
  "name": "Plan",

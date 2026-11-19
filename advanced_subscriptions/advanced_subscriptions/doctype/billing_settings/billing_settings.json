@@ -1,0 +1,109 @@
+{
+ "actions": [],
+ "creation": "2026-11-19 12:00:00",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "collection_section",
+  "collection_delay_days",
+  "retry_after_days",
+  "c1",
+  "vat_rate",
+  "arrears_section",
+  "reminder_after_days",
+  "restrict_after_days",
+  "c2",
+  "read_only_after_days",
+  "collection_after_days"
+ ],
+ "fields": [
+  {
+   "fieldname": "collection_section",
+   "fieldtype": "Section Break",
+   "label": "Collection"
+  },
+  {
+   "fieldname": "collection_delay_days",
+   "fieldtype": "Int",
+   "label": "Days between statement and collection",
+   "default": "4",
+   "description": "The statement is sent on the billing day; the amount is collected this many days later."
+  },
+  {
+   "fieldname": "retry_after_days",
+   "fieldtype": "Int",
+   "label": "Retry a failed collection after (days)",
+   "default": "5",
+   "description": "One new attempt after a failed direct debit. A chargeback by the customer is never retried."
+  },
+  {
+   "fieldname": "c1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "vat_rate",
+   "fieldtype": "Percent",
+   "label": "VAT rate",
+   "default": "21",
+   "description": "For subscriptions. A product has its own rate."
+  },
+  {
+   "fieldname": "arrears_section",
+   "fieldtype": "Section Break",
+   "label": "Arrears"
+  },
+  {
+   "fieldname": "reminder_after_days",
+   "fieldtype": "Int",
+   "label": "Reminder after (days)",
+   "default": "7"
+  },
+  {
+   "fieldname": "restrict_after_days",
+   "fieldtype": "Int",
+   "label": "Restrict paid functions after (days)",
+   "default": "14"
+  },
+  {
+   "fieldname": "c2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "read_only_after_days",
+   "fieldtype": "Int",
+   "label": "Read only after (days)",
+   "default": "30"
+  },
+  {
+   "fieldname": "collection_after_days",
+   "fieldtype": "Int",
+   "label": "Hand over to debt collection after (days)",
+   "default": "45"
+  }
+ ],
+ "links": [],
+ "modified": "2026-11-19 14:00:00",
+ "modified_by": "Administrator",
+ "module": "Advanced Subscriptions",
+ "name": "Billing Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1
+  },
+  {
+   "role": "LegalFyx Finance",
+   "read": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "issingle": 1
+}

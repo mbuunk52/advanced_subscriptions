@@ -22,7 +22,11 @@
   "plan",
   "technical_section",
   "mollie_payment_data",
-  "webhook_logs"
+  "webhook_logs",
+  "billing_statement",
+  "sequence_type",
+  "amount_refunded",
+  "amount_charged_back"
  ],
  "fields": [
   {
@@ -35,7 +39,7 @@
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Mollie Payment ID",
-   "unique": 1
+   "search_index": 1
   },
   {
    "fieldname": "amount",
@@ -58,7 +62,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Status",
-   "options": "Pending\nPaid\nFailed\nCancelled\nExpired\nAuthorized\nUnknown",
+   "options": "Open\nPending\nPaid\nFailed\nCancelled\nExpired\nAuthorized\nCharged Back\nUnknown",
    "reqd": 1
   },
   {
@@ -122,11 +126,37 @@
    "fieldname": "webhook_logs",
    "fieldtype": "Long Text",
    "label": "Webhook Logs"
+  },
+  {
+   "fieldname": "billing_statement",
+   "fieldtype": "Link",
+   "label": "Billing statement",
+   "options": "Billing Statement",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sequence_type",
+   "fieldtype": "Select",
+   "label": "Sequence",
+   "options": "\nfirst\nrecurring\noneoff",
+   "read_only": 1
+  },
+  {
+   "fieldname": "amount_refunded",
+   "fieldtype": "Currency",
+   "label": "Refunded",
+   "read_only": 1
+  },
+  {
+   "fieldname": "amount_charged_back",
+   "fieldtype": "Currency",
+   "label": "Charged back",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-10-16 11:10:21.455236",
+ "modified": "2026-11-19 12:00:00",
  "modified_by": "Administrator",
  "module": "Advanced Subscriptions",
  "name": "Payment Record",

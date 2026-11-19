@@ -1,0 +1,201 @@
+{
+ "actions": [],
+ "creation": "2026-11-19 12:00:00",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "administration",
+  "subscription",
+  "status",
+  "c1",
+  "issue_date",
+  "collect_on",
+  "paid_on",
+  "lines_section",
+  "lines",
+  "totals_section",
+  "net_total",
+  "vat_total",
+  "c2",
+  "total",
+  "collection_section",
+  "attempts",
+  "last_attempt_on",
+  "payment_record",
+  "checkout_url",
+  "c3",
+  "invoice_number",
+  "invoice_pdf"
+ ],
+ "fields": [
+  {
+   "fieldname": "administration",
+   "fieldtype": "Link",
+   "label": "Administration",
+   "options": "Administration",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "subscription",
+   "fieldtype": "Link",
+   "label": "Subscription",
+   "options": "Subscription"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Draft\nIssued\nCollecting\nPaid\nFailed\nCharged Back\nCancelled",
+   "default": "Draft",
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "c1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "issue_date",
+   "fieldtype": "Date",
+   "label": "Statement date",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "collect_on",
+   "fieldtype": "Date",
+   "label": "Collect on"
+  },
+  {
+   "fieldname": "paid_on",
+   "fieldtype": "Date",
+   "label": "Paid on",
+   "read_only": 1
+  },
+  {
+   "fieldname": "lines_section",
+   "fieldtype": "Section Break",
+   "label": "Lines"
+  },
+  {
+   "fieldname": "lines",
+   "fieldtype": "Table",
+   "label": "Lines",
+   "options": "Billing Statement Line"
+  },
+  {
+   "fieldname": "totals_section",
+   "fieldtype": "Section Break",
+   "label": "Totals"
+  },
+  {
+   "fieldname": "net_total",
+   "fieldtype": "Currency",
+   "label": "Net",
+   "read_only": 1
+  },
+  {
+   "fieldname": "vat_total",
+   "fieldtype": "Currency",
+   "label": "VAT",
+   "read_only": 1
+  },
+  {
+   "fieldname": "c2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total",
+   "fieldtype": "Currency",
+   "label": "Total",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "collection_section",
+   "fieldtype": "Section Break",
+   "label": "Collection"
+  },
+  {
+   "fieldname": "attempts",
+   "fieldtype": "Int",
+   "label": "Collection attempts",
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_attempt_on",
+   "fieldtype": "Date",
+   "label": "Last attempt",
+   "read_only": 1
+  },
+  {
+   "fieldname": "payment_record",
+   "fieldtype": "Link",
+   "label": "Last payment",
+   "options": "Payment Record",
+   "read_only": 1
+  },
+  {
+   "fieldname": "checkout_url",
+   "fieldtype": "Data",
+   "label": "Payment link",
+   "read_only": 1,
+   "length": 500
+  },
+  {
+   "fieldname": "c3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "invoice_number",
+   "fieldtype": "Data",
+   "label": "Invoice number",
+   "read_only": 1,
+   "description": "Set by the accounting system once the invoice exists there."
+  },
+  {
+   "fieldname": "invoice_pdf",
+   "fieldtype": "Attach",
+   "label": "Invoice",
+   "read_only": 1
+  }
+ ],
+ "links": [],
+ "modified": "2026-11-19 12:00:00",
+ "modified_by": "Administrator",
+ "module": "Advanced Subscriptions",
+ "name": "Billing Statement",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1
+  },
+  {
+   "role": "LegalFyx Finance",
+   "read": 1,
+   "write": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "autoname": "format:BS-{YYYY}-{#####}",
+ "naming_rule": "Expression",
+ "track_changes": 1
+}

@@ -97,6 +97,22 @@ def overview(administration: str) -> dict:
 	}
 
 
+@frappe.whitelist()
+def usage_log(administration: str, limit: int = 50) -> list[dict]:
+	"""Who used what and when, newest first."""
+	accounts.require_member(administration)
+	rows = frappe.get_all(
+		"Billing Charge",
+		filters={"administration": administration, "status": ["!=", "Cancelled"]},
+		fields=["name", "usage_date", "product", "description", "quantity", "included_quantity", "amount", "price_includes_vat", "user", "status", "billing_statement", "reference_doctype", "reference_name"],
+		order_by="creation desc",
+		limit=min(int(limit or 50), 200),
+	)
+	for row in rows:
+		row["user_name"] = frappe.db.get_value("User", row.user, "full_name") if row.user else None
+	return rows
+
+
 @frappe.whitelist(allow_guest=True, methods=["POST"])
 def mollie_webhook() -> str:
 	"""Mollie posts only an id. The payment is read back from Mollie with our own key, and only an id

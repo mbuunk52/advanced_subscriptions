@@ -109,9 +109,14 @@ def on_statement_paid(statement) -> None:
 		_activate(subscription)
 
 
-def renew_due() -> None:
+def _only(filters: dict, administration: str | None) -> dict:
+	"""The daily steps take every administration; a test or a support action can name one."""
+	return {**filters, "administration": administration} if administration else filters
+
+
+def renew_due(administration: str | None = None) -> None:
 	"""Runs daily. On the day a period ends: stop, or issue the statement for the next period."""
-	for name in frappe.get_all("Subscription", filters={"status": "Active", "einddatum": ["<=", today()]}, pluck="name"):
+	for name in frappe.get_all("Subscription", filters=_only({"status": "Active", "einddatum": ["<=", today()]}, administration), pluck="name"):
 		try:
 			renew(frappe.get_doc("Subscription", name))
 			frappe.db.commit()
@@ -152,10 +157,10 @@ def _issue_with_usage(administration: str, lines: list, charges: list, subscript
 	pricing.mark_billed(charges, statement and statement.name)
 
 
-def bill_usage_due() -> None:
+def bill_usage_due(only: str | None = None) -> None:
 	"""Runs daily, after the renewals. Usage of a finished month that no renewal picked up (a yearly or
 	free plan, or no plan at all) gets its own statement."""
-	for administration in set(frappe.get_all("Billing Charge", filters={"status": "Open"}, pluck="administration")):
+	for administration in set(frappe.get_all("Billing Charge", filters=_only({"status": "Open"}, only), pluck="administration")):
 		try:
 			window_start, _end = pricing.usage_window(administration)
 			lines, charges = pricing.open_usage(administration, window_start)
@@ -168,19 +173,19 @@ def bill_usage_due() -> None:
 			frappe.log_error(title="Billing: usage statement failed", message=administration)
 
 
-def collect_due() -> None:
+def collect_due(administration: str | None = None) -> None:
 	"""Runs daily. Collect issued statements whose collection date has come; one retry of a failed debit."""
 	conf = statements.settings()
 	pending = set(frappe.get_all("Subscription", filters={"status": "Pending"}, pluck="name"))
 	due = frappe.get_all(
 		"Billing Statement",
-		filters={"status": "Issued", "collect_on": ["<=", today()], "total": [">", 0]},
+		filters=_only({"status": "Issued", "collect_on": ["<=", today()], "total": [">", 0]}, administration),
 		fields=["name", "subscription"],
 	)
 	retry_before = frappe.utils.add_days(today(), -(conf.retry_after_days or 5))
 	retry = frappe.get_all(
 		"Billing Statement",
-		filters={"status": "Failed", "attempts": ["<", 2], "last_attempt_on": ["<=", retry_before], "total": [">", 0]},
+		filters=_only({"status": "Failed", "attempts": ["<", 2], "last_attempt_on": ["<=", retry_before], "total": [">", 0]}, administration),
 		fields=["name", "subscription"],
 	)
 	for row in due + retry:

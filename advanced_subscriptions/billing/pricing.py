@@ -130,14 +130,68 @@ def quote(administration: str, product_code: str, quantity=1) -> dict:
 	}
 
 
-def charge(administration: str, product_code: str, quantity=1, *, idempotency_key: str, reference=None, description: str | None = None):
+class PriceChanged(frappe.ValidationError):
+	"""The price is higher than what the user confirmed."""
+
+
+def quote_many(administration: str, items: list[tuple[str, float]]) -> dict:
+	"""One action that consists of several products (a letter plus colour printing): the lines and the total."""
+	lines = [quote(administration, code, quantity) for code, quantity in items]
+	return {
+		"lines": lines,
+		"net_amount": flt(sum(row["net_amount"] for row in lines), 2),
+		"vat_amount": flt(sum(row["vat_amount"] for row in lines), 2),
+		"amount": flt(sum(row["amount"] for row in lines), 2),
+		"price_includes_vat": lines[0]["price_includes_vat"] if lines else False,
+		"blocked": any(row["blocked"] for row in lines),
+		"billed_on": next_statement_date(administration),
+	}
+
+
+def next_statement_date(administration: str):
+	"""When usage of today lands on a statement: the renewal of a monthly plan, else the end of the usage month."""
+	subscription = active_subscription(administration)
+	if subscription and (subscription.billing_period or "Month") == "Month":
+		return frappe.db.get_value("Subscription", subscription.name, "einddatum")
+	return usage_window(administration)[1]
+
+
+def charge_many(administration: str, items: list[tuple[str, float]], *, idempotency_key: str, reference=None, expected_amount=None, allow_when_blocked=False) -> list:
+	"""Charge the products of one action together. `expected_amount` is what the user saw and confirmed:
+	when the real total is higher (a colleague just used the last included item), nothing is charged."""
+	keys = {code: f"{idempotency_key}:{code}" for code, _quantity in items}
+	if all(frappe.db.exists("Billing Charge", {"idempotency_key": key}) for key in keys.values()):
+		return [frappe.get_doc("Billing Charge", {"idempotency_key": key}) for key in keys.values()]
+	total = quote_many(administration, items)["amount"]
+	if expected_amount is not None and total > flt(expected_amount) + 0.005:
+		frappe.throw(_("The price has changed to {0}. Check the costs and confirm again.").format(frappe.format_value(total, {"fieldtype": "Currency", "options": "EUR"})), PriceChanged)
+	return [
+		charge(administration, code, quantity, idempotency_key=keys[code], reference=reference, allow_when_blocked=allow_when_blocked)
+		for code, quantity in items
+	]
+
+
+def cancel_charges(key_prefix: str) -> int:
+	"""Undo the usage of an action that failed after all. Charges that are already on a statement stay;
+	those need a credit."""
+	names = frappe.get_all("Billing Charge", filters={"idempotency_key": ["like", f"{key_prefix}:%"], "status": "Open"}, pluck="name")
+	if names:
+		frappe.db.set_value("Billing Charge", {"name": ["in", names]}, "status", "Cancelled")
+	billed = frappe.db.count("Billing Charge", {"idempotency_key": ["like", f"{key_prefix}:%"], "status": "Billed", "amount": [">", 0]})
+	if billed:
+		frappe.log_error(title="Billing: failed action was already billed, credit needed", message=key_prefix)
+	return len(names)
+
+
+def charge(administration: str, product_code: str, quantity=1, *, idempotency_key: str, reference=None, description: str | None = None, allow_when_blocked=False):
 	"""Record usage. The same key gives the same charge back, so a retried action is charged once.
-	With payments overdue, anything that costs money is refused."""
+	With payments overdue, anything that costs money is refused, unless the caller finishes something
+	that was already running (`allow_when_blocked`)."""
 	existing = frappe.db.get_value("Billing Charge", {"idempotency_key": idempotency_key}, "name")
 	if existing:
 		return frappe.get_doc("Billing Charge", existing)
 	price = quote(administration, product_code, quantity)
-	if price["blocked"]:
+	if price["blocked"] and not allow_when_blocked:
 		frappe.throw(_("This costs money and there are payments overdue. Pay the open amount first."), frappe.ValidationError)
 	doc = frappe.new_doc("Billing Charge")
 	doc.update(

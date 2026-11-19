@@ -137,10 +137,11 @@ class TestBilling(IntegrationTestCase):
 		)
 
 	def run_day(self):
-		subscriptions.renew_due()
-		subscriptions.bill_usage_due()
-		subscriptions.collect_due()
-		arrears.update_all()
+		# only this test's administration: test runs commit, and the site may hold other subscriptions
+		subscriptions.renew_due(self.administration)
+		subscriptions.bill_usage_due(self.administration)
+		subscriptions.collect_due(self.administration)
+		arrears.update(self.administration)
 
 	# starting
 
@@ -304,7 +305,7 @@ class TestBilling(IntegrationTestCase):
 				self.assertEqual(arrears.update(self.administration), expected)
 		# a chargeback is never collected again by itself
 		with self.freeze_time(add_days(base, 20)):
-			subscriptions.collect_due()
+			subscriptions.collect_due(self.administration)
 			self.assertEqual(len(self.mine()), 1)
 
 	def test_paying_everything_ends_the_arrears_at_once(self):
@@ -443,6 +444,24 @@ class TestBilling(IntegrationTestCase):
 			pricing.charge(self.administration, product, idempotency_key=unique("key"))  # the included one still works
 			with self.assertRaises(frappe.ValidationError):
 				pricing.charge(self.administration, product, idempotency_key=unique("key"))
+
+	def test_confirmed_amount_protects_against_a_price_that_went_up(self):
+		letter, colour = make_product(), make_product(individual=0.5)
+		self.start_paid(make_plan(20, rates=[{"product": letter, "included": 1, "price": 1.5}]))
+		items = [(letter, 1), (colour, 1)]
+		seen = pricing.quote_many(self.administration, items)
+		self.assertEqual((seen["amount"], [row["amount"] for row in seen["lines"]]), (0.5, [0, 0.5]))
+		pricing.charge(self.administration, letter, idempotency_key=unique("key"))  # a colleague uses the included one
+		with self.assertRaises(pricing.PriceChanged):
+			pricing.charge_many(self.administration, items, idempotency_key="act-1" + self.administration, expected_amount=seen["amount"])
+		self.assertEqual(frappe.db.count("Billing Charge", {"idempotency_key": ["like", "act-1" + self.administration + ":%"]}), 0)
+		charges = pricing.charge_many(self.administration, items, idempotency_key="act-1" + self.administration, expected_amount=2.0)
+		self.assertEqual(sorted(flt(c.amount) for c in charges), [0.5, 1.5])
+		again = pricing.charge_many(self.administration, items, idempotency_key="act-1" + self.administration, expected_amount=0)
+		self.assertEqual({c.name for c in again}, {c.name for c in charges})  # a retry is the same charge
+		self.assertEqual(pricing.cancel_charges("act-1" + self.administration), 2)
+		self.assertEqual(pricing.quote(self.administration, colour)["amount"], 0.5)
+		self.assertEqual([row["status"] for row in api.usage_log(self.administration)], ["Open"])
 
 	# who may do this
 

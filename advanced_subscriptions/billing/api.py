@@ -187,7 +187,8 @@ def mollie_webhook() -> str:
 	payment_id = frappe.form_dict.get("id")
 	if isinstance(payment_id, str) and payment_id.startswith("tr_") and len(payment_id) < 40:
 		try:
-			payments.process(payment_id)
+			with accounts.customer_language(force=True):  # Mollie's call carries no language
+				payments.process(payment_id)
 			frappe.db.commit()
 		except Exception:
 			frappe.db.rollback()

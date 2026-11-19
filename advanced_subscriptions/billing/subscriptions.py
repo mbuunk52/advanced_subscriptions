@@ -10,7 +10,7 @@ from frappe.utils import add_months, date_diff, flt, format_date, getdate, today
 
 from advanced_subscriptions import emails
 from advanced_subscriptions.billing import arrears, payments, pricing, statements
-from advanced_subscriptions.billing.accounts import default_mandate
+from advanced_subscriptions.billing.accounts import customer_language, default_mandate
 
 MONTHS = {"Month": 1, "Year": 12}
 
@@ -279,10 +279,16 @@ def resume(subscription) -> None:
 
 
 def daily() -> None:
-	payments.sync_open()
-	payments.sync_recent_paid()
-	renew_due()
-	bill_usage_due()
-	collect_due()
-	arrears.update_all()
+	with customer_language():
+		payments.sync_open()
+		payments.sync_recent_paid()
+		renew_due()
+		bill_usage_due()
+		collect_due()
+		arrears.update_all()
 	frappe.db.commit()
+
+
+def hourly() -> None:
+	with customer_language():
+		payments.sync_open()

@@ -9,6 +9,7 @@
   "retry_after_days",
   "c1",
   "vat_rate",
+  "customer_language",
   "arrears_section",
   "reminder_after_days",
   "restrict_after_days",
@@ -120,10 +121,18 @@
    "fieldtype": "Currency",
    "label": "No confirmation needed below",
    "default": "5"
+  },
+  {
+   "fieldname": "customer_language",
+   "fieldtype": "Link",
+   "options": "Language",
+   "label": "Language of statements and e-mails",
+   "default": "nl",
+   "description": "Used when nobody is at the screen: the daily run and payments reported by Mollie."
   }
  ],
  "links": [],
- "modified": "2026-11-19 17:00:00",
+ "modified": "2026-11-19 18:00:00",
  "modified_by": "Administrator",
  "module": "Advanced Subscriptions",
  "name": "Billing Settings",

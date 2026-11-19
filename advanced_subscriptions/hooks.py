@@ -148,7 +148,7 @@ scheduler_events = {
 		"advanced_subscriptions.billing.subscriptions.daily",
 		"advanced_subscriptions.advanced_subscriptions.doctype.subscription.subscription.check_expiring_subscriptions",
 	],
-	"hourly": ["advanced_subscriptions.billing.payments.sync_open"],
+	"hourly": ["advanced_subscriptions.billing.subscriptions.hourly"],
 }
 
 # Testing

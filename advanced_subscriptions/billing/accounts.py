@@ -1,5 +1,7 @@
 """Billing account, Mollie customer and mandate of an administration."""
 
+from contextlib import contextmanager
+
 import frappe
 from frappe import _
 
@@ -18,6 +20,7 @@ DEFAULTS = {
 	"collect_now_above": 100,
 	"user_month_limit": 0,
 	"no_confirm_below": 5,
+	"customer_language": "nl",
 }
 
 
@@ -25,6 +28,20 @@ def settings():
 	"""Billing Settings, with the defaults for values that were never saved."""
 	saved = frappe.db.get_singles_dict("Billing Settings", cast=True)
 	return frappe._dict({key: saved[key] if saved.get(key) is not None else default for key, default in DEFAULTS.items()})
+
+
+@contextmanager
+def customer_language(force: bool = False):
+	"""Statements and e-mails made while nobody is at the screen (the daily run, a payment Mollie reports)
+	are written in the language of Billing Settings instead of the site's. A person working in the app
+	keeps their own language."""
+	previous = frappe.local.lang
+	if force or not getattr(frappe.local, "request", None):
+		frappe.local.lang = settings().customer_language or previous
+	try:
+		yield
+	finally:
+		frappe.local.lang = previous
 
 
 def can_manage(administration: str, user: str | None = None) -> bool:

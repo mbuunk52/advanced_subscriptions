@@ -14,6 +14,10 @@ DEFAULTS = {
 	"restrict_after_days": 14,
 	"read_only_after_days": 30,
 	"collection_after_days": 45,
+	"spending_limit": 250,
+	"collect_now_above": 100,
+	"user_month_limit": 0,
+	"no_confirm_below": 5,
 }
 
 

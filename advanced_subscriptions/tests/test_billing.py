@@ -11,7 +11,7 @@ from frappe.tests import IntegrationTestCase
 from frappe.utils import add_days, add_months, flt, getdate, today
 from thelegalportal.tests.utils import make_administration, make_user, unique
 
-from advanced_subscriptions.billing import accounts, api, arrears, payments, pricing, subscriptions
+from advanced_subscriptions.billing import accounts, api, arrears, limits, payments, pricing, subscriptions
 
 
 class FakeMollie:
@@ -462,6 +462,80 @@ class TestBilling(IntegrationTestCase):
 		self.assertEqual(pricing.cancel_charges("act-1" + self.administration), 2)
 		self.assertEqual(pricing.quote(self.administration, colour)["amount"], 0.5)
 		self.assertEqual([row["status"] for row in api.usage_log(self.administration)], ["Open"])
+
+	# limits
+
+	def test_spending_needs_a_payment_method_and_permission(self):
+		product = make_product()
+		self.assertEqual(pricing.quote_many(self.administration, [(product, 1)])["block_reason"], "payment_method")
+		with self.assertRaises(pricing.Blocked):
+			pricing.charge_many(self.administration, [(product, 1)], idempotency_key=unique("key"))
+		# an automatic step of something already running is charged all the same
+		self.assertEqual(len(pricing.charge_many(self.administration, [(product, 1)], idempotency_key=unique("key"), allow_when_blocked=True)), 1)
+		# a cent through the payment page records the method
+		result = api.add_payment_method(self.administration)
+		self.assertTrue(result["payment_url"])
+		self.mollie.settle(self.mine()[-1]["id"])
+		self.assertIsNone(pricing.quote_many(self.administration, [(product, 1)])["block_reason"])
+		outsider = make_user(f"billing-spender-{frappe.generate_hash(length=6)}@example.com", "Legal User")
+		frappe.set_user(outsider)
+		self.assertEqual(pricing.quote_many(self.administration, [(product, 1)])["block_reason"], "not_allowed")
+
+	def test_user_limit_per_month(self):
+		product = make_product(individual=4)
+		subscription = self.start_paid(make_plan(20))
+		account = frappe.get_doc("Billing Account", self.administration)
+		account.append("user_limits", {"user": "Administrator", "may_order": 1, "month_limit": 10})
+		account.save()
+		pricing.charge_many(self.administration, [(product, 2)], idempotency_key=unique("key"))
+		quote = pricing.quote_many(self.administration, [(product, 1)])
+		self.assertEqual((quote["block_reason"], quote["blocked"]), ("user_limit", True))
+		with self.assertRaises(pricing.Blocked):
+			pricing.charge_many(self.administration, [(product, 1)], idempotency_key=unique("key"))
+		with self.freeze_time(subscription.einddatum):
+			self.assertIsNone(pricing.quote_many(self.administration, [(product, 1)])["block_reason"])  # a new month
+		account.reload()
+		account.user_limits[0].may_order = 0
+		account.save()
+		self.assertEqual(pricing.quote_many(self.administration, [(product, 1)])["block_reason"], "not_allowed")
+
+	def test_large_purchase_and_passing_the_limit_are_collected_at_once(self):
+		small, large = make_product(individual=30), make_product(individual=150)
+		self.start_paid(make_plan(20))
+		self.assertFalse(pricing.quote_many(self.administration, [(small, 1)])["collect_now"])
+		pricing.charge_many(self.administration, [(small, 1)], idempotency_key=unique("key"))
+		self.assertEqual(len(self.statements()), 1)  # waits for the next statement
+		self.assertTrue(pricing.quote_many(self.administration, [(large, 1)])["collect_now"])
+		pricing.charge_many(self.administration, [(large, 1)], idempotency_key=unique("key"))
+		rows = self.statements()
+		self.assertEqual((len(rows), flt(rows[1].total), rows[1].status), (2, 150.0, "Collecting"))
+		self.assertEqual(self.mine()[-1]["sequenceType"], "recurring")
+		self.assertEqual(frappe.db.count("Billing Charge", {"administration": self.administration, "status": "Open"}), 1)
+		# open usage passes the limit of the administration: everything open is collected
+		frappe.db.set_value("Billing Account", self.administration, "spending_limit", 50)
+		pricing.charge_many(self.administration, [(small, 1)], idempotency_key=unique("key"))
+		rows = self.statements()
+		self.assertEqual((len(rows), flt(rows[2].total)), (3, 60.0))
+		self.assertEqual(frappe.db.count("Billing Charge", {"administration": self.administration, "status": "Open"}), 0)
+
+	def test_administration_manages_its_own_limits(self):
+		from thelegalportal.tests.utils import grant_administration
+
+		member = make_user(f"billing-member-{frappe.generate_hash(length=6)}@example.com", "Legal User")
+		grant_administration(member, self.administration, "Editor")
+		self.start_paid(make_plan(20))
+		result = api.set_limits(
+			self.administration,
+			user_month_limit=40,
+			no_confirm_below=2,
+			members=[{"user": member, "may_order": True, "month_limit": 15}, {"user": "stranger@example.com", "month_limit": 5}],
+		)
+		self.assertEqual((result["effective"]["user_month_limit"], result["effective"]["no_confirm_below"], result["effective"]["spending_limit"]), (40, 2, 250))
+		self.assertEqual([(m["user"], m["month_limit"], m["can_spend"]) for m in result["members"]], [(member, 15, True)])
+		self.assertEqual(limits.for_user(self.administration, member)["user_month_limit"], 15)
+		frappe.set_user(member)
+		with self.assertRaises(frappe.PermissionError):
+			api.set_limits(self.administration, user_month_limit=1000)  # an Editor does not set limits
 
 	# who may do this
 

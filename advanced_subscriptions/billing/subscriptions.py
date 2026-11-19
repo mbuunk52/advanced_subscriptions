@@ -157,6 +157,17 @@ def _issue_with_usage(administration: str, lines: list, charges: list, subscript
 	pricing.mark_billed(charges, statement and statement.name)
 
 
+def bill_usage_now(administration: str, only: list[str] | None = None) -> None:
+	"""Put open usage (all of it, or the given charges) on a statement and collect it on the mandate now."""
+	lines, charges = pricing.open_usage(administration, only=only)
+	if not lines:
+		return
+	subscription = pricing.active_subscription(administration)
+	statement = statements.issue(administration, lines, subscription=subscription and subscription.name, collect_on=today())
+	pricing.mark_billed(charges, statement.name)
+	payments.collect(statement)
+
+
 def bill_usage_due(only: str | None = None) -> None:
 	"""Runs daily, after the renewals. Usage of a finished month that no renewal picked up (a yearly or
 	free plan, or no plan at all) gets its own statement."""

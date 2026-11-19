@@ -1,0 +1,48 @@
+{
+ "actions": [],
+ "creation": "2026-11-19 17:00:00",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "editable_grid": 1,
+ "istable": 1,
+ "field_order": [
+  "user",
+  "may_order",
+  "month_limit"
+ ],
+ "fields": [
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "label": "User",
+   "options": "User",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "may_order",
+   "fieldtype": "Check",
+   "label": "May order",
+   "default": "1",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "month_limit",
+   "fieldtype": "Currency",
+   "label": "Limit per month",
+   "in_list_view": 1,
+   "description": "0: the limit of the administration applies."
+  }
+ ],
+ "links": [],
+ "modified": "2026-11-19 17:00:00",
+ "modified_by": "Administrator",
+ "module": "Advanced Subscriptions",
+ "name": "Billing User Limit",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

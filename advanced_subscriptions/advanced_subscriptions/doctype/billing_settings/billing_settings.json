@@ -14,7 +14,13 @@
   "restrict_after_days",
   "c2",
   "read_only_after_days",
-  "collection_after_days"
+  "collection_after_days",
+  "limits_section",
+  "spending_limit",
+  "collect_now_above",
+  "c3",
+  "user_month_limit",
+  "no_confirm_below"
  ],
  "fields": [
   {
@@ -79,10 +85,45 @@
    "fieldtype": "Int",
    "label": "Hand over to debt collection after (days)",
    "default": "45"
+  },
+  {
+   "fieldname": "limits_section",
+   "fieldtype": "Section Break",
+   "label": "Spending limits",
+   "description": "Defaults for every administration. An administration and a user can have their own values."
+  },
+  {
+   "fieldname": "spending_limit",
+   "fieldtype": "Currency",
+   "label": "Open usage per administration",
+   "default": "250",
+   "description": "Above this, the open usage is collected at once instead of with the next statement."
+  },
+  {
+   "fieldname": "collect_now_above",
+   "fieldtype": "Currency",
+   "label": "Collect a single purchase at once above",
+   "default": "100"
+  },
+  {
+   "fieldname": "c3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "user_month_limit",
+   "fieldtype": "Currency",
+   "label": "Limit per user per month",
+   "description": "0: no limit per user."
+  },
+  {
+   "fieldname": "no_confirm_below",
+   "fieldtype": "Currency",
+   "label": "No confirmation needed below",
+   "default": "5"
   }
  ],
  "links": [],
- "modified": "2026-11-19 14:00:00",
+ "modified": "2026-11-19 17:00:00",
  "modified_by": "Administrator",
  "module": "Advanced Subscriptions",
  "name": "Billing Settings",

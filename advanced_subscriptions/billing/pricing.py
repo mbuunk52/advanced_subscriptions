@@ -134,18 +134,40 @@ class PriceChanged(frappe.ValidationError):
 	"""The price is higher than what the user confirmed."""
 
 
+class Blocked(frappe.ValidationError):
+	"""The user cannot spend this now: overdue payments, a limit, no permission or no payment method."""
+
+
 def quote_many(administration: str, items: list[tuple[str, float]]) -> dict:
 	"""One action that consists of several products (a letter plus colour printing): the lines and the total."""
+	from advanced_subscriptions.billing import limits
+
 	lines = [quote(administration, code, quantity) for code, quantity in items]
+	amount = flt(sum(row["amount"] for row in lines), 2)
+	# Overdue payments come first; then whether this user may spend this much
+	reason = "arrears" if any(row["blocked"] for row in lines) else limits.block_reason(administration, frappe.session.user, amount, usage_window(administration))
+	values = limits.of_administration(administration)
+	collect_now = amount > values["collect_now_above"] > 0 or (amount > 0 and limits.open_usage_amount(administration) + amount > values["spending_limit"] > 0)
 	return {
 		"lines": lines,
 		"net_amount": flt(sum(row["net_amount"] for row in lines), 2),
 		"vat_amount": flt(sum(row["vat_amount"] for row in lines), 2),
-		"amount": flt(sum(row["amount"] for row in lines), 2),
+		"amount": amount,
 		"price_includes_vat": lines[0]["price_includes_vat"] if lines else False,
-		"blocked": any(row["blocked"] for row in lines),
+		"blocked": bool(reason),
+		"block_reason": reason,
+		"needs_confirmation": amount >= values["no_confirm_below"],
+		"collect_now": bool(collect_now and not reason),
 		"billed_on": next_statement_date(administration),
 	}
+
+
+BLOCK_MESSAGES = {
+	"arrears": "This costs money and there are payments overdue. Pay the open amount first.",
+	"not_allowed": "You are not allowed to order things that cost money for this administration.",
+	"user_limit": "This goes over your spending limit for this month. Ask an administrator of the administration.",
+	"payment_method": "This costs money and there is no payment method yet. Add one under Settings › Subscription.",
+}
 
 
 def next_statement_date(administration: str):
@@ -162,13 +184,41 @@ def charge_many(administration: str, items: list[tuple[str, float]], *, idempote
 	keys = {code: f"{idempotency_key}:{code}" for code, _quantity in items}
 	if all(frappe.db.exists("Billing Charge", {"idempotency_key": key}) for key in keys.values()):
 		return [frappe.get_doc("Billing Charge", {"idempotency_key": key}) for key in keys.values()]
-	total = quote_many(administration, items)["amount"]
+	price = quote_many(administration, items)
+	total = price["amount"]
+	if price["block_reason"] and not allow_when_blocked:
+		frappe.throw(_(BLOCK_MESSAGES[price["block_reason"]]), Blocked)
 	if expected_amount is not None and total > flt(expected_amount) + 0.005:
 		frappe.throw(_("The price has changed to {0}. Check the costs and confirm again.").format(frappe.format_value(total, {"fieldtype": "Currency", "options": "EUR"})), PriceChanged)
-	return [
-		charge(administration, code, quantity, idempotency_key=keys[code], reference=reference, allow_when_blocked=allow_when_blocked)
+	charges = [
+		charge(administration, code, quantity, idempotency_key=keys[code], reference=reference, allow_when_blocked=True)
 		for code, quantity in items
 	]
+	_collect_early(administration, [doc.name for doc in charges], total)
+	return charges
+
+
+def _collect_early(administration: str, charges: list[str], amount: float) -> None:
+	"""A large single purchase is collected at once, and so is all open usage once it passes the limit of
+	the administration. Without a mandate, or when collecting fails, it waits for the next statement."""
+	from advanced_subscriptions.billing import limits, subscriptions
+	from advanced_subscriptions.billing.accounts import default_mandate
+
+	if amount <= 0 or not default_mandate(administration):
+		return
+	values = limits.of_administration(administration)
+	if amount > values["collect_now_above"] > 0:
+		only = charges
+	elif limits.open_usage_amount(administration) > values["spending_limit"] > 0:
+		only = None
+	else:
+		return
+	try:
+		frappe.db.savepoint("billing_collect_early")
+		subscriptions.bill_usage_now(administration, only)
+	except Exception:
+		frappe.db.rollback(save_point="billing_collect_early")
+		frappe.log_error(title="Billing: early collection failed", message=administration)
 
 
 def cancel_charges(key_prefix: str) -> int:
@@ -192,7 +242,7 @@ def charge(administration: str, product_code: str, quantity=1, *, idempotency_ke
 		return frappe.get_doc("Billing Charge", existing)
 	price = quote(administration, product_code, quantity)
 	if price["blocked"] and not allow_when_blocked:
-		frappe.throw(_("This costs money and there are payments overdue. Pay the open amount first."), frappe.ValidationError)
+		frappe.throw(_(BLOCK_MESSAGES["arrears"]), Blocked)
 	doc = frappe.new_doc("Billing Charge")
 	doc.update(
 		{
@@ -226,11 +276,17 @@ def cancel_charge(idempotency_key: str) -> None:
 		frappe.db.set_value("Billing Charge", name, "status", "Cancelled")
 
 
-def open_usage(administration: str, before) -> tuple[list[dict], list[str]]:
-	"""Statement lines for unbilled usage dated before `before`, grouped per product and price."""
+def open_usage(administration: str, before=None, only: list[str] | None = None) -> tuple[list[dict], list[str]]:
+	"""Statement lines for unbilled usage, grouped per product and price: everything dated before `before`,
+	or just the charges in `only`."""
+	filters = {"administration": administration, "status": "Open"}
+	if only is not None:
+		filters["name"] = ["in", only]
+	elif before:
+		filters["usage_date"] = ["<", before]
 	charges = frappe.get_all(
 		"Billing Charge",
-		filters={"administration": administration, "status": "Open", "usage_date": ["<", before]},
+		filters=filters,
 		fields=["name", "product", "quantity", "included_quantity", "unit_price", "price_includes_vat", "vat_rate", "amount"],
 		order_by="usage_date asc",
 	)

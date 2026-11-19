@@ -12,7 +12,15 @@
   "open_amount",
   "exempt_section",
   "exempt_until",
-  "exempt_reason"
+  "exempt_reason",
+  "limits_section",
+  "spending_limit",
+  "collect_now_above",
+  "c2",
+  "user_month_limit",
+  "no_confirm_below",
+  "user_limits_section",
+  "user_limits"
  ],
  "fields": [
   {
@@ -73,10 +81,52 @@
    "fieldtype": "Small Text",
    "label": "Reason",
    "mandatory_depends_on": "exempt_until"
+  },
+  {
+   "fieldname": "limits_section",
+   "fieldtype": "Section Break",
+   "label": "Spending limits",
+   "description": "0 means: the platform default applies."
+  },
+  {
+   "fieldname": "spending_limit",
+   "fieldtype": "Currency",
+   "label": "Open usage limit",
+   "description": "Only LegalFyx changes this: it bounds what the administration can owe."
+  },
+  {
+   "fieldname": "collect_now_above",
+   "fieldtype": "Currency",
+   "label": "Collect a single purchase at once above"
+  },
+  {
+   "fieldname": "c2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "user_month_limit",
+   "fieldtype": "Currency",
+   "label": "Limit per user per month"
+  },
+  {
+   "fieldname": "no_confirm_below",
+   "fieldtype": "Currency",
+   "label": "No confirmation needed below"
+  },
+  {
+   "fieldname": "user_limits_section",
+   "fieldtype": "Section Break",
+   "label": "Users"
+  },
+  {
+   "fieldname": "user_limits",
+   "fieldtype": "Table",
+   "label": "Limits per user",
+   "options": "Billing User Limit"
   }
  ],
  "links": [],
- "modified": "2026-11-19 12:00:00",
+ "modified": "2026-11-19 17:00:00",
  "modified_by": "Administrator",
  "module": "Advanced Subscriptions",
  "name": "Billing Account",

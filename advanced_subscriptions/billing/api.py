@@ -3,7 +3,7 @@
 import frappe
 from frappe import _
 
-from advanced_subscriptions.billing import accounts, payments, pricing, subscriptions
+from advanced_subscriptions.billing import accounts, limits, payments, pricing, statements, subscriptions
 
 
 @frappe.whitelist(methods=["POST"])
@@ -95,6 +95,73 @@ def overview(administration: str) -> dict:
 			limit=24,
 		),
 	}
+
+
+@frappe.whitelist(methods=["POST"])
+def add_payment_method(administration: str) -> dict:
+	"""Record a payment method without a subscription: a payment of one cent through Mollie's payment page
+	gives the mandate that later usage is collected on."""
+	accounts.require_manage(administration)
+	open_one = frappe.db.get_value(
+		"Billing Statement", {"administration": administration, "status": "Issued", "total": 0.01, "subscription": ["is", "not set"]}, "name"
+	)
+	statement = (
+		frappe.get_doc("Billing Statement", open_one)
+		if open_one
+		else statements.issue(
+			administration,
+			[statements.line(_("Recording your payment method"), 0.01, include_vat=True, kind="Usage")],
+			collect_on=frappe.utils.today(),
+		)
+	)
+	return {"payment_url": payments.start_checkout(statement), "statement": statement.name}
+
+
+@frappe.whitelist()
+def get_limits(administration: str) -> dict:
+	"""The spending limits of the administration and of each member, with what they spent this month."""
+	accounts.require_manage(administration)
+	window = pricing.usage_window(administration)
+	members = []
+	for method in frappe.get_hooks("billing_members")[-1:]:
+		members = frappe.get_attr(method)(administration) or []
+	for member in members:
+		row = limits.user_row(administration, member["user"])
+		member.update(
+			{
+				"may_order": bool(row.may_order) if row else True,
+				"month_limit": (row and row.month_limit) or 0,
+				"can_spend": limits.may_spend(administration, member["user"]),
+				"spent": limits.spent_by(administration, member["user"], *window),
+			}
+		)
+	own = frappe.db.get_value("Billing Account", administration, ["user_month_limit", "no_confirm_below"], as_dict=True) or {}
+	return {
+		"effective": limits.of_administration(administration),
+		"user_month_limit": own.get("user_month_limit") or 0,
+		"no_confirm_below": own.get("no_confirm_below") or 0,
+		"members": members,
+	}
+
+
+@frappe.whitelist(methods=["POST"])
+def set_limits(administration: str, user_month_limit: float = 0, no_confirm_below: float = 0, members: list | str | None = None) -> dict:
+	"""What the administration decides itself. The limit on open usage and the threshold for collecting
+	at once bound what LegalFyx is owed, so only LegalFyx changes those."""
+	accounts.require_manage(administration)
+	members = frappe.parse_json(members) or []
+	if frappe.utils.flt(user_month_limit) < 0 or frappe.utils.flt(no_confirm_below) < 0 or any(frappe.utils.flt(m.get("month_limit")) < 0 for m in members):
+		frappe.throw(_("A limit cannot be negative."))
+	known = {m["user"] for method in frappe.get_hooks("billing_members")[-1:] for m in (frappe.get_attr(method)(administration) or [])}
+	account = accounts.get_account(administration)
+	account.user_month_limit = frappe.utils.flt(user_month_limit)
+	account.no_confirm_below = frappe.utils.flt(no_confirm_below)
+	account.set("user_limits", [])
+	for member in members:
+		if member.get("user") in known and (not member.get("may_order", True) or frappe.utils.flt(member.get("month_limit")) > 0):
+			account.append("user_limits", {"user": member["user"], "may_order": 1 if member.get("may_order", True) else 0, "month_limit": frappe.utils.flt(member.get("month_limit"))})
+	account.save(ignore_permissions=True)
+	return get_limits(administration)
 
 
 @frappe.whitelist()

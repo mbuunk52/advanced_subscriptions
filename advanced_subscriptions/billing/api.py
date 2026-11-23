@@ -81,7 +81,7 @@ def overview(administration: str) -> dict:
 		"prices_include_vat": pricing.includes_vat(pricing.customer_type(administration)),
 		"usage": [
 			pricing.rate(administration, code)
-			for code in frappe.get_all("Billing Product", filters={"is_active": 1}, pluck="name", order_by="title asc")
+			for code in frappe.get_all("Billing Product", filters={"is_active": 1, "price_source": ["in", ["Rates", "", None]]}, pluck="name", order_by="title asc")
 		],
 		"mandate": mandate and {"method": mandate.method, "label": mandate.label},
 		"billing_status": (account and account.billing_status) or "Current",

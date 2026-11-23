@@ -87,6 +87,13 @@ def retire_test_products():
 	frappe.db.set_value("Plan", {"naam": ["like", "Plan %"], "beschrijving": ["is", "not set"]}, "is_active", 0)
 
 
+HEARD: list = []
+
+
+def heard_hook(charge, status):
+	HEARD.append((charge, status))
+
+
 def make_business() -> str:
 	administration = make_administration()
 	frappe.db.set_value("Administration", administration, "profile_type", "Business")
@@ -517,6 +524,59 @@ class TestBilling(IntegrationTestCase):
 		rows = self.statements()
 		self.assertEqual((len(rows), flt(rows[2].total)), (3, 60.0))
 		self.assertEqual(frappe.db.count("Billing Charge", {"administration": self.administration, "status": "Open"}), 0)
+
+	def test_purchase_at_a_price_the_app_gives(self):
+		code = f"test.{frappe.generate_hash(length=8)}"
+		frappe.get_doc({"doctype": "Billing Product", "code": code, "title": "Model", "price_source": "App", "vat_rate": 21}).insert(ignore_permissions=True)
+		self.start_paid(make_plan(20))
+		quote = pricing.quote_purchase(self.administration, code, 60.5, True, title="Model huurovereenkomst")
+		self.assertEqual((quote["amount"], quote["net_amount"], quote["lines"][0]["title"], quote["collect_now"]), (60.5, 50.0, "Model huurovereenkomst", False))
+		with self.assertRaises(pricing.PriceChanged):
+			pricing.purchase(self.administration, code, unit_price=70, price_includes_vat=True, description="Model", idempotency_key=unique("k"), expected_amount=60.5)
+		key = unique("k")
+		charge = pricing.purchase(self.administration, code, unit_price=60.5, price_includes_vat=True, description="Model huurovereenkomst", idempotency_key=key, expected_amount=60.5)
+		again = pricing.purchase(self.administration, code, unit_price=60.5, price_includes_vat=True, description="Model huurovereenkomst", idempotency_key=key)
+		self.assertEqual(charge.name, again.name)
+		# its own line on the statement, under its own description
+		lines, charges = pricing.open_usage(self.administration, only=[charge.name])
+		self.assertEqual([(row["description"], row["kind"], row["amount"]) for row in lines], [("Model huurovereenkomst", "Purchase", 60.5)])
+		# collected at once when the app asks for it
+		now = pricing.purchase(self.administration, code, unit_price=10, price_includes_vat=True, description="Klein model", idempotency_key=unique("k"), collect_now=True)
+		self.assertEqual(frappe.db.get_value("Billing Charge", now.name, "status"), "Billed")
+		self.assertEqual(flt(self.statements()[-1].total), 10.0)
+
+	def test_credit_cancels_or_lowers_the_next_statement(self):
+		product = make_product(individual=30)
+		self.start_paid(make_plan(20))
+		first = pricing.charge(self.administration, product, idempotency_key=unique("k"))
+		self.assertIsNone(pricing.credit(first.name, "niet gebruikt"))
+		self.assertEqual(frappe.db.get_value("Billing Charge", first.name, "status"), "Cancelled")
+		second = pricing.charge(self.administration, product, idempotency_key=unique("k"))
+		subscriptions.bill_usage_now(self.administration, [second.name])
+		credit = pricing.credit(second.name, "niet gebruikt")
+		self.assertEqual((flt(credit.amount), credit.credit_of), (-30.0, second.name))
+		self.assertEqual(pricing.credit(second.name, "nog eens").name, credit.name)
+		# alone it would make a negative statement, so it waits
+		lines, charges = pricing.open_usage(self.administration)
+		self.assertEqual((lines, charges), ([], []))
+		third = pricing.charge(self.administration, product, 2, idempotency_key=unique("k"))
+		lines, charges = pricing.open_usage(self.administration)
+		self.assertEqual(sorted(flt(row["amount"]) for row in lines), [-30.0, 60.0])
+		self.assertEqual(set(charges), {credit.name, third.name})
+
+	def test_host_app_hears_what_happened_to_a_charge(self):
+		product = make_product(individual=150)
+		self.start_paid(make_plan(20))
+		reference = frappe.get_doc("Administration", self.administration)
+		real = frappe.get_hooks
+		hook = "advanced_subscriptions.tests.test_billing.heard_hook"
+		with patch("advanced_subscriptions.billing.pricing.frappe.get_hooks", side_effect=lambda name=None, *a, **k: [hook] if name == "billing_charge_settled" else real(name, *a, **k)):
+			HEARD.clear()
+			pricing.charge_many(self.administration, [(product, 1)], idempotency_key=unique("k"), reference=reference)
+			self.mollie.settle(self.mine()[-1]["id"])
+			self.assertEqual([(row[0].reference_name, row[1]) for row in HEARD], [(self.administration, "Paid")])
+			self.mollie.settle(self.mine()[-1]["id"], charged_back=150)
+			self.assertEqual(HEARD[-1][1], "Charged Back")
 
 	def test_administration_manages_its_own_limits(self):
 		from thelegalportal.tests.utils import grant_administration

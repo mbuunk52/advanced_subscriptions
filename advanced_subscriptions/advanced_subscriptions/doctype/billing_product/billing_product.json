@@ -8,6 +8,7 @@
   "title",
   "unit",
   "is_active",
+  "price_source",
   "c1",
   "price_individual",
   "price_business",
@@ -53,13 +54,15 @@
    "fieldtype": "Currency",
    "label": "Price for individuals (incl. VAT)",
    "in_list_view": 1,
-   "description": "Used when the plan of the administration sets no rate for this product."
+   "description": "Used when the plan of the administration sets no rate for this product.",
+   "depends_on": "eval:doc.price_source!='App'"
   },
   {
    "fieldname": "price_business",
    "fieldtype": "Currency",
    "label": "Price for businesses (excl. VAT)",
-   "in_list_view": 1
+   "in_list_view": 1,
+   "depends_on": "eval:doc.price_source!='App'"
   },
   {
    "fieldname": "vat_rate",
@@ -75,6 +78,14 @@
    "fieldname": "description",
    "fieldtype": "Small Text",
    "label": "Description"
+  },
+  {
+   "fieldname": "price_source",
+   "fieldtype": "Select",
+   "label": "Price comes from",
+   "options": "Rates\nApp",
+   "default": "Rates",
+   "description": "Rates: the prices here and in the plans. App: the app gives the price with each purchase, for example a model from the marketplace."
   }
  ],
  "links": [],

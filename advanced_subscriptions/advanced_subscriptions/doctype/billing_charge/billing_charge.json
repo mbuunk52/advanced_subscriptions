@@ -15,6 +15,7 @@
   "reference_doctype",
   "reference_name",
   "idempotency_key",
+  "credit_of",
   "s1",
   "quantity",
   "included_quantity",
@@ -155,6 +156,13 @@
    "label": "Amount",
    "read_only": 1,
    "in_list_view": 1
+  },
+  {
+   "fieldname": "credit_of",
+   "fieldtype": "Link",
+   "options": "Billing Charge",
+   "label": "Credit of",
+   "read_only": 1
   }
  ],
  "links": [],

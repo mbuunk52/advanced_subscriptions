@@ -140,14 +140,25 @@ class Blocked(frappe.ValidationError):
 
 def quote_many(administration: str, items: list[tuple[str, float]]) -> dict:
 	"""One action that consists of several products (a letter plus colour printing): the lines and the total."""
-	from advanced_subscriptions.billing import limits
+	return _totals(administration, [quote(administration, code, quantity) for code, quantity in items])
 
-	lines = [quote(administration, code, quantity) for code, quantity in items]
+
+def _totals(administration: str, lines: list[dict], collect_now: bool = False, automatic: bool = False) -> dict:
+	"""`automatic`: not a person ordering but a renewal the customer agreed to before; then only overdue
+	payments and a missing payment method stop it, not the limits of a user."""
+	from advanced_subscriptions.billing import limits
+	from advanced_subscriptions.billing.accounts import default_mandate
+
 	amount = flt(sum(row["amount"] for row in lines), 2)
 	# Overdue payments come first; then whether this user may spend this much
-	reason = "arrears" if any(row["blocked"] for row in lines) else limits.block_reason(administration, frappe.session.user, amount, usage_window(administration))
+	if any(row["blocked"] for row in lines):
+		reason = "arrears"
+	elif automatic:
+		reason = None if amount <= 0 or default_mandate(administration) else "payment_method"
+	else:
+		reason = limits.block_reason(administration, frappe.session.user, amount, usage_window(administration))
 	values = limits.of_administration(administration)
-	collect_now = amount > values["collect_now_above"] > 0 or (amount > 0 and limits.open_usage_amount(administration) + amount > values["spending_limit"] > 0)
+	collect_now = (collect_now and amount > 0) or amount > values["collect_now_above"] > 0 or (amount > 0 and limits.open_usage_amount(administration) + amount > values["spending_limit"] > 0)
 	return {
 		"lines": lines,
 		"net_amount": flt(sum(row["net_amount"] for row in lines), 2),
@@ -221,6 +232,117 @@ def _collect_early(administration: str, charges: list[str], amount: float) -> No
 		frappe.log_error(title="Billing: early collection failed", message=administration)
 
 
+def quote_purchase(administration: str, product_code: str, unit_price, price_includes_vat: bool, *, title: str | None = None, collect_now: bool = False, automatic: bool = False) -> dict:
+	"""What one purchase would cost whose price the app gives (a model from the marketplace). Same shape as
+	`quote_many`, so the same cost block shows it. Nothing is recorded."""
+	product = frappe.get_cached_doc("Billing Product", product_code)
+	if not product.is_active or product.price_source != "App":
+		frappe.throw(_("{0} is not available.").format(product.title))
+	net, vat, total = statements.amounts(unit_price, 1, product.vat_rate, bool(price_includes_vat))
+	status = frappe.db.get_value("Billing Account", administration, "billing_status") or "Current"
+	line = {
+		"product": product.name,
+		"title": title or product.title,
+		"unit": product.unit,
+		"unit_price": flt(unit_price),
+		"price_includes_vat": bool(price_includes_vat),
+		"vat_rate": flt(product.vat_rate),
+		"included": 0,
+		"used": 0,
+		"remaining": 0,
+		"quantity": 1,
+		"included_quantity": 0,
+		"billable_quantity": 1,
+		"net_amount": net,
+		"vat_amount": vat,
+		"amount": total,
+		"blocked": bool(total and status in BLOCKED),
+	}
+	return _totals(administration, [line], collect_now, automatic)
+
+
+def purchase(
+	administration: str,
+	product_code: str,
+	*,
+	unit_price,
+	price_includes_vat: bool,
+	description: str,
+	idempotency_key: str,
+	reference=None,
+	expected_amount=None,
+	collect_now: bool = False,
+	automatic: bool = False,
+):
+	"""Charge one purchase at the price the app gives. The same key gives the same charge back.
+	`collect_now` collects it on the payment method at once instead of with the next statement."""
+	existing = frappe.db.get_value("Billing Charge", {"idempotency_key": idempotency_key}, "name")
+	if existing:
+		return frappe.get_doc("Billing Charge", existing)
+	price = quote_purchase(administration, product_code, unit_price, price_includes_vat, title=description, collect_now=collect_now, automatic=automatic)
+	if price["block_reason"]:
+		frappe.throw(_(BLOCK_MESSAGES[price["block_reason"]]), Blocked)
+	if expected_amount is not None and price["amount"] > flt(expected_amount) + 0.005:
+		frappe.throw(_("The price has changed to {0}. Check the costs and confirm again.").format(frappe.format_value(price["amount"], {"fieldtype": "Currency", "options": "EUR"})), PriceChanged)
+	doc = _insert_charge(administration, price["lines"][0], idempotency_key, reference, description)
+	if collect_now and price["amount"] > 0:
+		from advanced_subscriptions.billing import subscriptions
+		from advanced_subscriptions.billing.accounts import default_mandate
+
+		if default_mandate(administration):
+			try:
+				frappe.db.savepoint("billing_collect_purchase")
+				subscriptions.bill_usage_now(administration, [doc.name])
+			except Exception:
+				frappe.db.rollback(save_point="billing_collect_purchase")
+				frappe.log_error(title="Billing: collecting a purchase failed", message=doc.name)
+	else:
+		_collect_early(administration, [doc.name], price["amount"])
+	return doc
+
+
+def credit(charge_name: str, reason: str):
+	"""Give a charge back. Not billed yet: it is cancelled. Already on a statement: a negative charge that
+	lowers the next statement. Returns the credit charge, or None when cancelling was enough."""
+	charge_doc = frappe.get_doc("Billing Charge", charge_name)
+	if charge_doc.status == "Cancelled" or charge_doc.credit_of:
+		return None
+	if charge_doc.status == "Open":
+		charge_doc.db_set("status", "Cancelled")
+		return None
+	existing = frappe.db.get_value("Billing Charge", {"credit_of": charge_doc.name, "status": ["!=", "Cancelled"]}, "name")
+	if existing:
+		return frappe.get_doc("Billing Charge", existing)
+	billable = flt(charge_doc.quantity) - flt(charge_doc.included_quantity)
+	if billable <= 0 or flt(charge_doc.amount) <= 0:
+		return None
+	doc = frappe.new_doc("Billing Charge")
+	doc.update(
+		{
+			"administration": charge_doc.administration,
+			"product": charge_doc.product,
+			"description": _("Credit: {0} ({1})").format(charge_doc.description, reason),
+			"usage_date": today(),
+			"user": frappe.session.user,
+			"status": "Open",
+			"idempotency_key": f"credit:{charge_doc.name}",
+			"credit_of": charge_doc.name,
+			"reference_doctype": charge_doc.reference_doctype,
+			"reference_name": charge_doc.reference_name,
+			"quantity": -billable,
+			"included_quantity": 0,
+			"unit_price": charge_doc.unit_price,
+			"price_includes_vat": charge_doc.price_includes_vat,
+			"vat_rate": charge_doc.vat_rate,
+			"net_amount": -flt(charge_doc.net_amount),
+			"vat_amount": -flt(charge_doc.vat_amount),
+			"amount": -flt(charge_doc.amount),
+		}
+	)
+	doc.insert(ignore_permissions=True)
+	return doc
+
+
 def cancel_charges(key_prefix: str) -> int:
 	"""Undo the usage of an action that failed after all. Charges that are already on a statement stay;
 	those need a credit."""
@@ -243,12 +365,16 @@ def charge(administration: str, product_code: str, quantity=1, *, idempotency_ke
 	price = quote(administration, product_code, quantity)
 	if price["blocked"] and not allow_when_blocked:
 		frappe.throw(_(BLOCK_MESSAGES["arrears"]), Blocked)
+	return _insert_charge(administration, price, idempotency_key, reference, description or price["title"])
+
+
+def _insert_charge(administration: str, price: dict, idempotency_key: str, reference, description: str):
 	doc = frappe.new_doc("Billing Charge")
 	doc.update(
 		{
 			"administration": administration,
 			"product": price["product"],
-			"description": description or price["title"],
+			"description": description,
 			"usage_date": today(),
 			"user": frappe.session.user,
 			"status": "Open",
@@ -287,13 +413,20 @@ def open_usage(administration: str, before=None, only: list[str] | None = None) 
 	charges = frappe.get_all(
 		"Billing Charge",
 		filters=filters,
-		fields=["name", "product", "quantity", "included_quantity", "unit_price", "price_includes_vat", "vat_rate", "amount"],
-		order_by="usage_date asc",
+		fields=["name", "product", "description", "credit_of", "quantity", "included_quantity", "unit_price", "price_includes_vat", "vat_rate", "amount"],
+		order_by="usage_date asc, creation asc",
 	)
 	groups: dict[tuple, float] = {}
+	own_lines, credits = [], []
 	for row in charges:
 		billable = flt(row.quantity) - flt(row.included_quantity)
-		if billable > 0:
+		if row.credit_of:
+			credits.append(row)
+		elif frappe.get_cached_value("Billing Product", row.product, "price_source") == "App":
+			# a purchase keeps its own description (which model) and its own line
+			if billable > 0:
+				own_lines.append(_charge_line(row, "Purchase"))
+		elif billable > 0:
 			key = (row.product, flt(row.unit_price), row.price_includes_vat, flt(row.vat_rate))
 			groups[key] = groups.get(key, 0) + billable
 	lines = [
@@ -306,8 +439,44 @@ def open_usage(administration: str, before=None, only: list[str] | None = None) 
 			kind="Usage",
 		)
 		for (product, unit_price, include_vat, vat_rate), quantity in groups.items()
-	]
-	return lines, [row.name for row in charges]
+	] + own_lines
+	# A credit lowers a statement but never turns it negative; what does not fit waits for the next one
+	room = sum(line["amount"] for line in lines)
+	waiting = set()
+	for row in credits:
+		if room + flt(row.amount) >= 0:
+			room += flt(row.amount)
+			lines.append(_charge_line(row, "Credit"))
+		else:
+			waiting.add(row.name)
+	return lines, [row.name for row in charges if row.name not in waiting]
+
+
+def _charge_line(row, kind: str) -> dict:
+	return statements.line(
+		row.description,
+		row.unit_price,
+		include_vat=bool(row.price_includes_vat),
+		vat_rate=row.vat_rate,
+		quantity=flt(row.quantity) - flt(row.included_quantity),
+		kind=kind,
+	)
+
+
+def settled(statement, status: str) -> None:
+	"""Tell the host app what happened to the charges of a statement: Paid, Failed or Charged Back.
+	Hook `billing_charge_settled(charge, status)`; only charges that point at a document of the app."""
+	hooks = frappe.get_hooks("billing_charge_settled")
+	if not hooks:
+		return
+	charges = frappe.get_all(
+		"Billing Charge",
+		filters={"billing_statement": statement.name, "reference_name": ["is", "set"]},
+		fields=["name", "administration", "product", "reference_doctype", "reference_name", "amount", "net_amount", "credit_of", "idempotency_key"],
+	)
+	for charge_row in charges:
+		for hook in hooks:
+			frappe.get_attr(hook)(charge_row, status)
 
 
 def mark_billed(charges: list[str], statement: str | None) -> None:

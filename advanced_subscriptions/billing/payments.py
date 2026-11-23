@@ -136,6 +136,10 @@ def _apply(record, payment: dict) -> None:
 	elif record.status in NOT_PAID and statement.status not in ("Paid", "Cancelled"):
 		# an abandoned checkout leaves the statement as it was: issued and still to pay
 		set_status(statement, "Failed" if record.sequence_type == "recurring" or record.status == "Failed" else "Issued")
+	if statement.status in ("Paid", "Failed", "Charged Back"):
+		from advanced_subscriptions.billing import pricing
+
+		pricing.settled(statement, statement.status)
 	arrears.update(statement.administration)
 
 

@@ -30,7 +30,7 @@
    "fieldname": "kind",
    "fieldtype": "Select",
    "label": "Kind",
-   "options": "Subscription\nProration\nUsage",
+   "options": "Subscription\nProration\nUsage\nPurchase\nCredit",
    "default": "Subscription"
   },
   {
